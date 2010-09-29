@@ -11,7 +11,23 @@
 /*global window, document, navigator, ActiveXObject*/
 
 // Globals defined here
-Util = {};
+Util = {}, $;
+
+/*
+ * Simple DOM selector by ID
+ */
+if (!window.$) {
+    $ = function (id) {
+        if (document.getElementById) {
+            return document.getElementById(id);
+        } else if (document.all) {
+            return document.all[id];
+        } else if (document.layers) {
+            return document.layers[id];
+        }
+        return undefined;
+    };
+}
 
 
 /*
@@ -33,6 +49,11 @@ Array.prototype.push32 = function (num) {
               (num      ) & 0xFF  );
 };
 
+/* 
+ * ------------------------------------------------------
+ * Namespaced in Util
+ * ------------------------------------------------------
+ */
 
 
 /*
@@ -42,7 +63,7 @@ Array.prototype.push32 = function (num) {
 Util._log_level = 'warn';
 
 Util.init_logging = function (level) {
-    if (typeof level === 'undefined' || !level) {
+    if (typeof level === 'undefined') {
         level = Util._log_level;
     } else {
         Util._log_level = level;
@@ -85,7 +106,8 @@ Util.init_logging = function (level) {
 Util.get_logging = function () {
     return Util._log_level;
 }
-
+// Initialize logging level
+Util.init_logging();
 
 
 // Set defaults for Crockford style function namespaces
@@ -228,9 +250,4 @@ Util.Flash = (function(){
     }
     version = v.match(/\d+/g);
     return {version: parseInt(version[0] || 0 + '.' + version[1], 10) || 0, build: parseInt(version[2], 10) || 0};
-}());
-
-
-
-
-
+}()); 
