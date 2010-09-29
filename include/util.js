@@ -29,7 +29,6 @@ if (!window.$) {
     };
 }
 
-
 /*
  * Make arrays quack
  */
