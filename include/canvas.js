@@ -38,6 +38,7 @@ function cdef(v, type, defval, desc) {
 // Capability settings, default can be overridden
 cdef('prefer_js',      'raw', null, 'Prefer Javascript over canvas methods');
 cdef('cursor_uri',     'raw', null, 'Can we render cursor using data URI');
+
 cdef('target',         'dom',  null, 'Canvas element for VNC viewport');
 cdef('focusContainer', 'dom',  document, 'DOM element that traps keyboard input');
 cdef('true_color',     'bool', true, 'Request true color pixel data');
