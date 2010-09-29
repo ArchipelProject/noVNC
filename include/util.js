@@ -11,7 +11,7 @@
 /*global window, document, navigator, ActiveXObject*/
 
 // Globals defined here
-Util = {}, $;
+Util = {};
 
 /*
  * Simple DOM selector by ID
