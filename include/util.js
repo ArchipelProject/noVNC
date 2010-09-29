@@ -6,12 +6,12 @@
  * See README.md for usage and integration instructions.
  */
 
-"use strict";
+//"use strict";
 /*jslint bitwise: false, white: false */
 /*global window, document, navigator, ActiveXObject*/
 
 // Globals defined here
-var Util = {};
+Util = {};
 
 
 /*

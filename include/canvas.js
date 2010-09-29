@@ -6,11 +6,11 @@
  * See README.md for usage and integration instructions.
  */
 
-"use strict";
+//"use strict";
 /*jslint browser: true, white: false, bitwise: false */
 /*global window, Util, Base64 */
 
-var Canvas = function(conf) {
+Canvas = function(conf) {
 
 conf               = conf || {}; // Configuration
 var that           = {},         // Public API interface

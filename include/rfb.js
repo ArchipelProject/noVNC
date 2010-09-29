@@ -6,12 +6,12 @@
  * See README.md for usage and integration instructions.
  */
 
-"use strict";
+//"use strict";
 /*jslint white: false, browser: true, bitwise: false */
 /*global window, WebSocket, Util, Canvas, VNC_native_ws, Base64, DES */
 
 
-var RFB = function(conf) {
+RFB = function(conf) {
 conf               = conf || {}; // Configuration
 var that           = {},         // Public API interface
 

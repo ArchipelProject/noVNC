@@ -41,11 +41,11 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-"use strict";
+//"use strict";
 /*jslint white: false, bitwise: false, plusplus: false */
 /*global console */
 
-var Base64 = {
+Base64 = {
 
 /* Convert data (an array of integers) to a Base64 string. */
 toBase64Table : 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
