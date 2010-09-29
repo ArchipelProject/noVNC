@@ -8,10 +8,11 @@
 
 //"use strict";
 /*jslint bitwise: false, white: false */
-/*global window, document, navigator, ActiveXObject*/
+/*global window, console, document, navigator, ActiveXObject */
 
 // Globals defined here
 Util = {};
+
 
 /*
  * Simple DOM selector by ID
@@ -54,13 +55,11 @@ Array.prototype.push32 = function (num) {
  * ------------------------------------------------------
  */
 
-
 /*
  * Logging/debug routines
  */
 
 Util._log_level = 'warn';
-
 Util.init_logging = function (level) {
     if (typeof level === 'undefined') {
         level = Util._log_level;
@@ -83,25 +82,16 @@ Util.init_logging = function (level) {
 
     Util.Debug = Util.Info = Util.Warn = Util.Error = function (msg) {};
     switch (level) {
-        case 'debug':
-            Util.Debug = function (msg) { console.log(msg); };
-            break;
-        case 'info':
-            Util.Info  = function (msg) { console.log(msg); };
-            break;
-        case 'warn':
-            Util.Warn  = function (msg) { console.warn(msg); };
-            break;
-        case 'error':
-            Util.Error = function (msg) { console.error(msg); };
-            break;
+        case 'debug': Util.Debug = function (msg) { console.log(msg); };
+        case 'info':  Util.Info  = function (msg) { console.log(msg); };
+        case 'warn':  Util.Warn  = function (msg) { console.warn(msg); };
+        case 'error': Util.Error = function (msg) { console.error(msg); };
         case 'none':
             break;
         default:
             throw("invalid logging type '" + level + "'");
     }
 };
-
 Util.get_logging = function () {
     return Util._log_level;
 }
@@ -217,7 +207,6 @@ Util.stopEvent = function(e) {
     if (e.preventDefault)  { e.preventDefault(); }
     else                   { e.returnValue = false; }
 };
-
 
 
 // Set browser engine versions. Based on mootools.

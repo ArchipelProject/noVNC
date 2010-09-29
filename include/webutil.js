@@ -8,10 +8,11 @@
 
 "use strict";
 /*jslint bitwise: false, white: false */
-/*global window, console, document, navigator, ActiveXObject*/
+/*global window, document */
 
 // Globals defined here
-WebUtil = {};
+var WebUtil = {}, $;
+
 
 
 /* 
