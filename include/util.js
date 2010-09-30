@@ -13,23 +13,6 @@
 // Globals defined here
 Util = {};
 
-
-/*
- * Simple DOM selector by ID
- */
-if (!window.$) {
-    $ = function (id) {
-        if (document.getElementById) {
-            return document.getElementById(id);
-        } else if (document.all) {
-            return document.all[id];
-        } else if (document.layers) {
-            return document.layers[id];
-        }
-        return undefined;
-    };
-}
-
 /*
  * Make arrays quack
  */
