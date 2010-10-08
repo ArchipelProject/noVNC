@@ -78,7 +78,7 @@
 //"use strict";
 /*jslint white: false, bitwise: false, plusplus: false */
 
-function DES(passwd) {
+DES = function(passwd) {
 
 // Tables, permutations, S-boxes, etc.
 var PC2 = [13,16,10,23, 0, 4, 2,27,14, 5,20, 9,22,18,11, 3,
