@@ -117,11 +117,20 @@ ws_ctx_t *ws_socket(int socket) {
     return ctx;
 }
 
-ws_ctx_t *ws_socket_ssl(int socket, char * certfile) {
+ws_ctx_t *ws_socket_ssl(int socket, char * certfile, char * keyfile) {
     int ret;
     char msg[1024];
+    char * use_keyfile;
     ws_ctx_t *ctx;
     ctx = ws_socket(socket);
+
+    if (keyfile && (keyfile[0] != '\0')) {
+        // Separate key file
+        use_keyfile = keyfile;
+    } else {
+        // Combined key and cert file
+        use_keyfile = certfile;
+    }
 
     // Initialize the library
     if (! ssl_initialized) {
@@ -138,9 +147,9 @@ ws_ctx_t *ws_socket_ssl(int socket, char * certfile) {
         fatal("Failed to configure SSL context");
     }
 
-    if (SSL_CTX_use_PrivateKey_file(ctx->ssl_ctx, certfile,
-                                     SSL_FILETYPE_PEM) <= 0) {
-        sprintf(msg, "Unable to load private key file %s\n", certfile);
+    if (SSL_CTX_use_PrivateKey_file(ctx->ssl_ctx, use_keyfile,
+                                    SSL_FILETYPE_PEM) <= 0) {
+        sprintf(msg, "Unable to load private key file %s\n", use_keyfile);
         fatal(msg);
     }
 
@@ -191,7 +200,7 @@ int encode(u_char const *src, size_t srclength, char *target, size_t targsize) {
     int i, sz = 0, len = 0;
     unsigned char chr;
     target[sz++] = '\x00';
-    len = __b64_ntop(src, srclength, target+sz, targsize-sz);
+    len = b64_ntop(src, srclength, target+sz, targsize-sz);
     if (len < 0) {
         return len;
     }
@@ -213,7 +222,7 @@ int decode(char *src, size_t srclength, u_char *target, size_t targsize) {
         /* We may have more than one frame */
         end = memchr(start, '\xff', srclength);
         *end = '\x00';
-        len = __b64_pton(start, target+retlen, targsize-retlen);
+        len = b64_pton(start, target+retlen, targsize-retlen);
         if (len < 0) {
             return len;
         }
@@ -354,7 +363,7 @@ ws_ctx_t *do_handshake(int sock) {
                (bcmp(handshake, "\x80", 1) == 0)) {
         // SSL
         if (! settings.cert) { return NULL; }
-        ws_ctx = ws_socket_ssl(sock, settings.cert);
+        ws_ctx = ws_socket_ssl(sock, settings.cert, settings.key);
         if (! ws_ctx) { return NULL; }
         scheme = "wss";
         handler_msg("using SSL socket\n");

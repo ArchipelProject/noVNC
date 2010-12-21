@@ -72,7 +72,7 @@ var that           = {},         // Public API interface
     rQ             = [],     // Receive Queue
     rQi            = 0,      // Receive Queue Index
     rQmax          = 100000, // Max size before compacting
-    sQ             = "",     // Send Queue
+    sQ             = [],     // Send Queue
 
     // Frame buffer update state
     FBU            = {
@@ -126,13 +126,13 @@ var that           = {},         // Public API interface
 function cdef(v, type, defval, desc) {
     Util.conf_default(conf, that, v, type, defval, desc); }
 
-cdef('target',         'str', 'VNC_canvas', 'VNC viewport rendering Canvas');
-cdef('focusContainer', 'dom', document, 'Area that traps keyboard input');
+cdef('target',            'str', null, 'VNC viewport rendering Canvas');
+cdef('focusContainer',    'dom', document, 'Area that traps keyboard input');
 
-cdef('encrypt',        'bool', false, 'Use TLS/SSL/wss encryption');
-cdef('true_color',     'bool', true,  'Request true color pixel data');
-cdef('local_cursor',   'bool', false, 'Request locally rendered cursor');
-cdef('shared',         'bool', true,  'Request shared mode');
+cdef('encrypt',         'bool', false, 'Use TLS/SSL/wss encryption');
+cdef('true_color',      'bool', true,  'Request true color pixel data');
+cdef('local_cursor',    'bool', false, 'Request locally rendered cursor');
+cdef('shared',          'bool', true,  'Request shared mode');
 
 cdef('connectTimeout',    'int', 2,    'Time (s) to wait for connection');
 cdef('disconnectTimeout', 'int', 3,    'Time (s) to wait for disconnection');
@@ -318,7 +318,7 @@ init_vars = function() {
     /* Reset state */
     rQ               = [];
     rQi              = 0;
-    sQ               = "";
+    sQ               = [];
     FBU.rects        = 0;
     FBU.subrects     = 0;  // RRE and HEXTILE
     FBU.lines        = 0;  // RAW
@@ -377,6 +377,7 @@ print_stats = function() {
  *   Authentication
  *   password     - waiting for password, not part of RFB
  *   SecurityResult
+ *   ClientInitialization - not triggered by server message
  *   ServerInitialization
  */
 updateState = function(state, statusMsg) {
@@ -523,9 +524,9 @@ function fail(msg) {
     return false;
 }
 
-function encode_message(arr) {
+function encode_message() {
     /* base64 encode */
-    sQ = sQ + Base64.encode(arr);
+    return Base64.encode(sQ);
 }
 
 function decode_message(data) {
@@ -603,12 +604,12 @@ recv_message = function(e) {
 // overridable for testing
 send_array = function(arr) {
     //Util.Debug(">> send_array: " + arr);
-    encode_message(arr);
+    sQ = sQ.concat(arr);
     if (ws.bufferedAmount === 0) {
         //Util.Debug("arr: " + arr);
         //Util.Debug("sQ: " + sQ);
-        ws.send(sQ);
-        sQ = "";
+        ws.send(encode_message(sQ));
+        sQ = [];
     } else {
         Util.Debug("Delaying send");
     }
@@ -721,8 +722,8 @@ init_msg = function() {
                     // can handle.
                     if (ws.bufferedAmount === 0) {
                         if (sQ) {
-                            ws.send(sQ);
-                            sQ = "";
+                            ws.send(encode_message(sQ));
+                            sQ = [];
                         }
                     } else {
                         Util.Debug("Delaying send");
@@ -733,11 +734,12 @@ init_msg = function() {
         cversion = "00" + parseInt(rfb_version,10) +
                    ".00" + ((rfb_version * 10) % 10);
         send_string("RFB " + cversion + "\n");
-        updateState('Security', "Sent ProtocolVersion: " + sversion);
+        updateState('Security', "Sent ProtocolVersion: " + cversion);
         break;
 
     case 'Security' :
         if (rfb_version >= 3.7) {
+            // Server sends supported list, client decides 
             num_types = rQ[rQi++];
             if (rQwait("security type", num_types, 1)) { return false; }
             if (num_types === 0) {
@@ -759,6 +761,7 @@ init_msg = function() {
             
             send_array([rfb_auth_scheme]);
         } else {
+            // Server decides
             if (rQwait("security scheme", 4)) { return false; }
             rfb_auth_scheme = rQshift32();
         }
@@ -767,6 +770,7 @@ init_msg = function() {
         init_msg();  // Recursive fallthrough (workaround JSLint complaint)
         break;
 
+    // Triggered by fallthough, not by server message
     case 'Authentication' :
         //Util.Debug("Security auth scheme: " + rfb_auth_scheme);
         switch (rfb_auth_scheme) {
@@ -776,7 +780,12 @@ init_msg = function() {
                 reason = rQshiftStr(strlen);
                 return fail("Auth failure: " + reason);
             case 1:  // no authentication
-                updateState('SecurityResult');
+                if (rfb_version >= 3.8) {
+                    updateState('SecurityResult');
+                    return;
+                } else {
+                    // Fall through to ClientInitialisation
+                }
                 break;
             case 2:  // VNC authentication
                 if (rfb_password.length === 0) {
@@ -795,11 +804,13 @@ init_msg = function() {
                 //Util.Debug("Sending DES encrypted auth response");
                 send_array(response);
                 updateState('SecurityResult');
-                break;
+                return;
             default:
                 fail("Unsupported auth scheme: " + rfb_auth_scheme);
                 return;
         }
+        updateState('ClientInitialisation', "No auth required");
+        init_msg();  // Recursive fallthrough (workaround JSLint complaint)
         break;
 
     case 'SecurityResult' :
@@ -808,7 +819,7 @@ init_msg = function() {
         }
         switch (rQshift32()) {
             case 0:  // OK
-                updateState('ServerInitialisation', "Authentication OK");
+                // Fall through to ClientInitialisation
                 break;
             case 1:  // failed
                 if (rfb_version >= 3.8) {
@@ -825,7 +836,14 @@ init_msg = function() {
             case 2:  // too-many
                 return fail("Too many auth attempts");
         }
+        updateState('ClientInitialisation', "Authentication OK");
+        init_msg();  // Recursive fallthrough (workaround JSLint complaint)
+        break;
+
+    // Triggered by fallthough, not by server message
+    case 'ClientInitialisation' :
         send_array([conf.shared ? 1 : 0]); // ClientInitialisation
+        updateState('ServerInitialisation', "Authentication OK");
         break;
 
     case 'ServerInitialisation' :

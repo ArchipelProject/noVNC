@@ -16,7 +16,7 @@ conf               = conf || {}; // Configuration
 var that           = {},         // Public API interface
 
     // Private Canvas namespace variables
-    c_forceCanvas = false,
+    c_forceCanvas  = false,
 
     c_width        = 0,
     c_height       = 0,
@@ -25,8 +25,10 @@ var that           = {},         // Public API interface
 
     c_keyPress     = null,
     c_mouseButton  = null,
-    c_mouseMove    = null;
+    c_mouseMove    = null,
 
+    c_webkit_bug   = false,
+    c_flush_timer  = null;
 
 // Configuration settings
 function cdef(v, type, defval, desc) {
@@ -89,13 +91,13 @@ that.get_height = function() {
 function constructor() {
     Util.Debug(">> Canvas.init");
 
-    var c, ctx, imgTest, tval, i, curDat, curSave,
+    var c, ctx, func, origfunc, imgTest, tval, i, curDat, curSave,
         has_imageData = false, UE = Util.Engine;
 
     if (! conf.target) { throw("target must be set"); }
 
     if (typeof conf.target === 'string') {
-        conf.target = window.$(conf.target);
+        throw("target must be a DOM element");
     }
 
     c = conf.target;
@@ -107,8 +109,8 @@ function constructor() {
 
     if (UE.gecko) { Util.Debug("Browser: gecko " + UE.gecko); }
     if (UE.webkit) { Util.Debug("Browser: webkit " + UE.webkit); }
-    if (UE.trident) { Util.Debug("Browser: webkit " + UE.trident); }
-    if (UE.presto) { Util.Debug("Browser: webkit " + UE.presto); }
+    if (UE.trident) { Util.Debug("Browser: trident " + UE.trident); }
+    if (UE.presto) { Util.Debug("Browser: presto " + UE.presto); }
 
     that.clear();
 
@@ -157,6 +159,26 @@ function constructor() {
         that.cmapImage = that.cmapImageFill;
     }
 
+    if (UE.webkit && UE.webkit >= 534.7 && UE.webkit <= 534.9) {
+        // Workaround WebKit canvas rendering bug #46319
+        conf.render_mode += ", webkit bug workaround";
+        Util.Debug("Working around WebKit bug #46319");
+        c_webkit_bug = true;
+        for (func in {"fillRect":1, "copyImage":1, "rgbxImage":1,
+                "cmapImage":1, "blitStringImage":1}) {
+            that[func] = (function() {
+                var myfunc = that[func]; // Save original function
+                //Util.Debug("Wrapping " + func);
+                return function() {
+                    myfunc.apply(this, arguments);
+                    if (!c_flush_timer) {
+                        c_flush_timer = setTimeout(that.flush, 100);
+                    }
+                };
+            })();
+        }
+    }
+
     /*
      * Determine browser support for setting the cursor via data URI
      * scheme
@@ -191,7 +213,7 @@ function constructor() {
     return that ;
 }
 
-/* Translate DOM key event to keysym value */
+/* Translate DOM key down/up event to keysym value */
 function getKeysym(e) {
     var evt, keysym;
     evt = (e ? e : window.event);
@@ -493,6 +515,18 @@ that.stop = function() {
     if (conf.cursor_uri) {
         c.style.cursor = "default";
     }
+};
+
+that.flush = function() {
+    var old_val;
+    //Util.Debug(">> flush");
+    // Force canvas redraw (for webkit bug #46319 workaround)
+    old_val = conf.target.style.marginRight;
+    conf.target.style.marginRight = "1px";
+    c_flush_timer = null;
+    setTimeout(function () {
+            conf.target.style.marginRight = old_val;
+        }, 1);
 };
 
 that.setFillColor = function(color) {

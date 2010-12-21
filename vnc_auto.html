@@ -8,7 +8,8 @@
         http://example.com/?host=HOST&port=PORT&encrypt=1&true_color=1
     -->
     <head>
-        <title>VNC Client</title>
+        <title>noVNC</title>
+        <meta http-equiv="X-UA-Compatible" content="chrome=1">
         <link rel="stylesheet" href="include/plain.css" title="plain">
         <!--
         <script type='text/javascript' 
@@ -41,7 +42,7 @@
         var rfb;
 
         function setPassword() {
-            rfb.sendPassword($('password_input').value);
+            rfb.sendPassword($D('password_input').value);
             return false;
         }
         function sendCtrlAltDel() {
@@ -50,9 +51,9 @@
         }
         function updateState(rfb, state, oldstate, msg) {
             var s, sb, cad, klass;
-            s = $('VNC_status');
-            sb = $('VNC_status_bar');
-            cad = $('sendCtrlAltDelButton');
+            s = $D('VNC_status');
+            sb = $D('VNC_status_bar');
+            cad = $D('sendCtrlAltDelButton');
             switch (state) {
                 case 'failed':
                 case 'fatal':
@@ -89,7 +90,7 @@
         window.onload = function () {
             var host, port, password;
 
-            $('sendCtrlAltDelButton').onclick = sendCtrlAltDel;
+            $D('sendCtrlAltDelButton').onclick = sendCtrlAltDel;
 
             host = WebUtil.getQueryVar('host', null);
             port = WebUtil.getQueryVar('port', null);
@@ -100,7 +101,8 @@
                 return;
             }
 
-            rfb = new RFB({'encrypt':      WebUtil.getQueryVar('encrypt', false),
+            rfb = new RFB({'target':       $D('VNC_canvas'),
+                           'encrypt':      WebUtil.getQueryVar('encrypt', false),
                            'true_color':   WebUtil.getQueryVar('true_color', true),
                            'local_cursor': WebUtil.getQueryVar('cursor', true),
                            'shared':       WebUtil.getQueryVar('shared', true),

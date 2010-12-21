@@ -12,10 +12,10 @@ typedef struct {
     int listen_port;
     void (*handler)(ws_ctx_t*);
     int handler_id;
+    char *cert;
+    char *key;
     int ssl_only;
     int daemon;
-    char *record;
-    char *cert;
 } settings_t;
 
 typedef struct {
