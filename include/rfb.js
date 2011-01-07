@@ -257,7 +257,8 @@ function constructor() {
         Util.Info("Using native WebSockets");
         updateState('loaded', 'noVNC ready: native WebSockets, ' + rmode);
     } else {
-        Util.Warn("Using web-socket-js flash bridge");
+        Util.Warn("Using web-socket-js bridge. Flash version: " +
+                  Util.Flash.version);
         if ((! Util.Flash) ||
             (Util.Flash.version < 9)) {
             updateState('fatal', "WebSockets or Adobe Flash is required");
@@ -818,9 +819,7 @@ init_msg = function() {
         break;
 
     case 'SecurityResult' :
-        if (rQlen() < 4) {
-            return fail("Invalid VNC auth response");
-        }
+        if (rQwait("VNC auth response ", 4)) { return false; }
         switch (rQshift32()) {
             case 0:  // OK
                 // Fall through to ClientInitialisation
@@ -851,9 +850,7 @@ init_msg = function() {
         break;
 
     case 'ServerInitialisation' :
-        if (rQlen() < 24) {
-            return fail("Invalid server initialisation");
-        }
+        if (rQwait("server initialization", 24)) { return false; }
 
         /* Screen size */
         fb_width  = rQshift16();
@@ -1384,7 +1381,7 @@ encHandlers.DesktopSize = function set_desktopsize() {
     FBU.bytes = 0;
     FBU.rects -= 1;
     
-    conf.desktopSizeChanged(that, {"width": fb_width, "height": fb_height});
+    conf.desktopSizeChanged(that, FBU);
     Util.Debug("<< set_desktopsize");
     return true;
 };
