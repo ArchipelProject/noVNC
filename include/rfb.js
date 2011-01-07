@@ -146,6 +146,10 @@ cdef('clipboardReceive',
      'func', function() { Util.Debug("clipboardReceive stub"); },
      'callback: clipboard contents received');
 
+cdef('desktopSizeChanged', 
+     'func', function() { Util.Debug("desktopSizeChanged stub"); },
+     'callback: desktop size changed');
+
 
 // Override/add some specific getters/setters
 that.set_local_cursor = function(cursor) {
@@ -1379,7 +1383,8 @@ encHandlers.DesktopSize = function set_desktopsize() {
 
     FBU.bytes = 0;
     FBU.rects -= 1;
-
+    
+    conf.desktopSizeChanged(that, {"width": fb_width, "height": fb_height});
     Util.Debug("<< set_desktopsize");
     return true;
 };
