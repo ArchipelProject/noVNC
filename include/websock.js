@@ -45,7 +45,7 @@ if (window.WebSocket) {
 }
 
 
-function Websock() {
+Websock = function() {
 
 var api = {},         // Public API
     websocket = null, // WebSocket object
