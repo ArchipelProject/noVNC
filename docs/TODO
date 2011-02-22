@@ -1,9 +1,35 @@
 Short Term:
 
+- Test normal arrays vs TypedArrays vs imageData arrays.
+    - Blog post about it.
+
+- VNC performance and regression playback suite.
+    - WebSockets
+        - expand latency test
+        - add absolute timers (every 500 packets)
+        - try 1 ms delay
+        - stop at 4000 packets
+        - small and large packets test
+
+    - JavaScript
+        - just base64 decode
+        - everything except Canvas
+
+    - Full test
+        - Without WebSockets
+        - With replay from python tester
+        - add higher-resolution multi test
+
+    - websockify test with echo and playback functionality
+      - choosen by client test page on connect
+
+
 - Keyboard layout/internationalization support
     - convert keyCode into proper charCode
 
-- Test on IE 9 preview 3.
+- IE 9 improvements.
+    - https://github.com/gimite/web-socket-js/issues#issue/41
+    - try window.atob instead of decode for better performance
 
 - Status bar menu/buttons:
     - Explanatory hover text over buttons
@@ -20,20 +46,8 @@ Short Term:
     - Clipboard button -> popup:
         - text, clear and send buttons
 
-- wswrapper:
-    - Flash policy request support.
-    - SSL/TLS support.
-    - Tests suite:
-        - test pselect/poll/ppoll
-
 Medium Term:
-
-- VNC performance and regression playback suite.
 
 - Viewport support
 
 - Touchscreen testing/support.
-
-- wswrapper:
-    - epoll_* support
-

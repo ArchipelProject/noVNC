@@ -190,7 +190,7 @@ function constructor() {
     }
     try {
         curSave = c.style.cursor;
-        that.changeCursor(curDat, curDat, 2, 2, 8, 8);
+        changeCursor(conf.target, curDat, curDat, 2, 2, 8, 8);
         if (c.style.cursor) {
             if (conf.cursor_uri === null) {
                 conf.cursor_uri = true;
@@ -212,99 +212,6 @@ function constructor() {
 
     Util.Debug("<< Canvas.init");
     return that ;
-}
-
-/* Translate DOM key down/up event to keysym value */
-that.getKeysym = function(e) {
-    var evt, keysym;
-    evt = (e ? e : window.event);
-
-    /* Remap modifier and special keys */
-    switch ( evt.keyCode ) {
-        case 8         : keysym = 0xFF08; break; // BACKSPACE
-        case 9         : keysym = 0xFF09; break; // TAB
-        case 13        : keysym = 0xFF0D; break; // ENTER
-        case 27        : keysym = 0xFF1B; break; // ESCAPE
-        case 45        : keysym = 0xFF63; break; // INSERT
-        case 46        : keysym = 0xFFFF; break; // DELETE
-        case 36        : keysym = 0xFF50; break; // HOME
-        case 35        : keysym = 0xFF57; break; // END
-        case 33        : keysym = 0xFF55; break; // PAGE_UP
-        case 34        : keysym = 0xFF56; break; // PAGE_DOWN
-        case 37        : keysym = 0xFF51; break; // LEFT
-        case 38        : keysym = 0xFF52; break; // UP
-        case 39        : keysym = 0xFF53; break; // RIGHT
-        case 40        : keysym = 0xFF54; break; // DOWN
-        case 112       : keysym = 0xFFBE; break; // F1
-        case 113       : keysym = 0xFFBF; break; // F2
-        case 114       : keysym = 0xFFC0; break; // F3
-        case 115       : keysym = 0xFFC1; break; // F4
-        case 116       : keysym = 0xFFC2; break; // F5
-        case 117       : keysym = 0xFFC3; break; // F6
-        case 118       : keysym = 0xFFC4; break; // F7
-        case 119       : keysym = 0xFFC5; break; // F8
-        case 120       : keysym = 0xFFC6; break; // F9
-        case 121       : keysym = 0xFFC7; break; // F10
-        case 122       : keysym = 0xFFC8; break; // F11
-        case 123       : keysym = 0xFFC9; break; // F12
-        case 16        : keysym = 0xFFE1; break; // SHIFT
-        case 17        : keysym = 0xFFE3; break; // CONTROL
-        //case 18        : keysym = 0xFFE7; break; // Left Meta (Mac Option)
-        case 18        : keysym = 0xFFE9; break; // Left ALT (Mac Command)
-        default        : keysym = evt.keyCode; break;
-    }
-
-    /* Remap symbols */
-    switch (keysym) {
-        case 186       : keysym = 59; break; // ;  (IE)
-        case 187       : keysym = 61; break; // =  (IE)
-        case 188       : keysym = 44; break; // ,  (Mozilla, IE)
-        case 109       :                     // -  (Mozilla)
-            if (Util.Engine.gecko) {
-                         keysym = 45; }
-                                      break;
-        case 189       : keysym = 45; break; // -  (IE)
-        case 190       : keysym = 46; break; // .  (Mozilla, IE)
-        case 191       : keysym = 47; break; // /  (Mozilla, IE)
-        case 192       : keysym = 96; break; // `  (Mozilla, IE)
-        case 219       : keysym = 91; break; // [  (Mozilla, IE)
-        case 220       : keysym = 92; break; // \  (Mozilla, IE)
-        case 221       : keysym = 93; break; // ]  (Mozilla, IE)
-        case 222       : keysym = 39; break; // '  (Mozilla, IE)
-    }
-    
-    /* Remap shifted and unshifted keys */
-    if (!!evt.shiftKey) {
-        switch (keysym) {
-            case 48        : keysym = 41 ; break; // )  (shifted 0)
-            case 49        : keysym = 33 ; break; // !  (shifted 1)
-            case 50        : keysym = 64 ; break; // @  (shifted 2)
-            case 51        : keysym = 35 ; break; // #  (shifted 3)
-            case 52        : keysym = 36 ; break; // $  (shifted 4)
-            case 53        : keysym = 37 ; break; // %  (shifted 5)
-            case 54        : keysym = 94 ; break; // ^  (shifted 6)
-            case 55        : keysym = 38 ; break; // &  (shifted 7)
-            case 56        : keysym = 42 ; break; // *  (shifted 8)
-            case 57        : keysym = 40 ; break; // (  (shifted 9)
-
-            case 59        : keysym = 58 ; break; // :  (shifted `)
-            case 61        : keysym = 43 ; break; // +  (shifted ;)
-            case 44        : keysym = 60 ; break; // <  (shifted ,)
-            case 45        : keysym = 95 ; break; // _  (shifted -)
-            case 46        : keysym = 62 ; break; // >  (shifted .)
-            case 47        : keysym = 63 ; break; // ?  (shifted /)
-            case 96        : keysym = 126; break; // ~  (shifted `)
-            case 91        : keysym = 123; break; // {  (shifted [)
-            case 92        : keysym = 124; break; // |  (shifted \)
-            case 93        : keysym = 125; break; // }  (shifted ])
-            case 39        : keysym = 34 ; break; // "  (shifted ')
-        }
-    } else if ((keysym >= 65) && (keysym <=90)) {
-        /* Remap unshifted A-Z */
-        keysym += 32;
-    } 
-
-    return keysym;
 }
 
 function onMouseButton(e, down) {
@@ -361,25 +268,36 @@ function onMouseMove(e) {
 }
 
 function onKeyDown(e) {
-    //Util.Debug("keydown: " + that.getKeysym(e));
+    //Util.Debug("keydown: " + getKeysym(e));
     if (! conf.focused) {
         return true;
     }
     if (c_keyPress) {
-        c_keyPress(that.getKeysym(e), 1);
+        c_keyPress(getKeysym(e), 1, e.ctrlKey, e.shiftKey, e.altKey);
     }
     Util.stopEvent(e);
     return false;
 }
 
 function onKeyUp(e) {
-    //Util.Debug("keyup: " + that.getKeysym(e));
+    //Util.Debug("keyup: " + getKeysym(e));
     if (! conf.focused) {
         return true;
     }
     if (c_keyPress) {
-        c_keyPress(that.getKeysym(e), 0);
+        c_keyPress(getKeysym(e), 0, e.ctrlKey, e.shiftKey, e.altKey);
     }
+    Util.stopEvent(e);
+    return false;
+}
+
+function onKeyPress(e) {
+    //Util.Debug("keypress: " + e.charCode);
+    if (! conf.focused) {
+        return true;
+    }
+    // Stop keypress events. Necessary for Opera because stopping
+    // keydown and keyup events still results in a keypress event.
     Util.stopEvent(e);
     return false;
 }
@@ -421,6 +339,7 @@ that.start = function(keyPressFunc, mouseButtonFunc, mouseMoveFunc) {
 
     Util.addEvent(conf.focusContainer, 'keydown', onKeyDown);
     Util.addEvent(conf.focusContainer, 'keyup', onKeyUp);
+    Util.addEvent(conf.focusContainer, 'keypress', onKeyPress);
     Util.addEvent(c, 'mousedown', onMouseDown);
     Util.addEvent(c, 'mouseup', onMouseUp);
     Util.addEvent(c, 'mousemove', onMouseMove);
@@ -432,6 +351,27 @@ that.start = function(keyPressFunc, mouseButtonFunc, mouseMoveFunc) {
     Util.addEvent(conf.focusContainer.body, 'contextmenu', onMouseDisable);
 
     Util.Debug("<< Canvas.start");
+};
+
+that.stop = function() {
+    var c = conf.target;
+    Util.removeEvent(conf.focusContainer, 'keydown', onKeyDown);
+    Util.removeEvent(conf.focusContainer, 'keyup', onKeyUp);
+    Util.removeEvent(conf.focusContainer, 'keypress', onKeyPress);
+    Util.removeEvent(c, 'mousedown', onMouseDown);
+    Util.removeEvent(c, 'mouseup', onMouseUp);
+    Util.removeEvent(c, 'mousemove', onMouseMove);
+    Util.removeEvent(c, (Util.Engine.gecko) ? 'DOMMouseScroll' : 'mousewheel',
+            onMouseWheel);
+
+    /* Work around right and middle click browser behaviors */
+    Util.removeEvent(conf.focusContainer, 'click', onMouseDisable);
+    Util.removeEvent(conf.focusContainer.body, 'contextmenu', onMouseDisable);
+
+    // Turn off cursor rendering
+    if (conf.cursor_uri) {
+        c.style.cursor = "default";
+    }
 };
 
 that.rescale = function(factor) {
@@ -496,26 +436,9 @@ that.resize = function(width, height, true_color) {
 that.clear = function() {
     that.resize(640, 20);
     conf.ctx.clearRect(0, 0, c_width, c_height);
-};
 
-that.stop = function() {
-    var c = conf.target;
-    Util.removeEvent(conf.focusContainer, 'keydown', onKeyDown);
-    Util.removeEvent(conf.focusContainer, 'keyup', onKeyUp);
-    Util.removeEvent(c, 'mousedown', onMouseDown);
-    Util.removeEvent(c, 'mouseup', onMouseUp);
-    Util.removeEvent(c, 'mousemove', onMouseMove);
-    Util.removeEvent(c, (Util.Engine.gecko) ? 'DOMMouseScroll' : 'mousewheel',
-            onMouseWheel);
-
-    /* Work around right and middle click browser behaviors */
-    Util.removeEvent(conf.focusContainer, 'click', onMouseDisable);
-    Util.removeEvent(conf.focusContainer.body, 'contextmenu', onMouseDisable);
-
-    // Turn off cursor rendering
-    if (conf.cursor_uri) {
-        c.style.cursor = "default";
-    }
+    // No benefit over default ("source-over") in Chrome and firefox
+    //conf.ctx.globalCompositeOperation = "copy";
 };
 
 that.flush = function() {
@@ -698,14 +621,28 @@ that.blitStringImage = function(str, x, y) {
 };
 
 that.changeCursor = function(pixels, mask, hotx, hoty, w, h) {
-    var cur = [], cmap, rgb, IHDRsz, ANDsz, XORsz, url, idx, alpha, x, y;
-    //Util.Debug(">> changeCursor, x: " + hotx + ", y: " + hoty + ", w: " + w + ", h: " + h);
-    
     if (conf.cursor_uri === false) {
         Util.Warn("changeCursor called but no cursor data URI support");
         return;
     }
 
+    if (conf.true_color) {
+        changeCursor(conf.target, pixels, mask, hotx, hoty, w, h);
+    } else {
+        changeCursor(conf.target, pixels, mask, hotx, hoty, w, h, conf.colourMap);
+    }
+}
+
+return constructor();  // Return the public API interface
+
+}  // End of Canvas()
+
+
+/* Set CSS cursor property using data URI encoded cursor file */
+function changeCursor(target, pixels, mask, hotx, hoty, w, h, cmap) {
+    var cur = [], rgb, IHDRsz, RGBsz, ANDsz, XORsz, url, idx, alpha, x, y;
+    //Util.Debug(">> changeCursor, x: " + hotx + ", y: " + hoty + ", w: " + w + ", h: " + h);
+    
     // Push multi-byte little-endian values
     cur.push16le = function (num) {
         this.push((num     ) & 0xFF,
@@ -718,63 +655,77 @@ that.changeCursor = function(pixels, mask, hotx, hoty, w, h) {
                   (num >> 24) & 0xFF  );
     };
 
-    cmap = conf.colourMap;
     IHDRsz = 40;
-    ANDsz = w * h * 4;
+    RGBsz = w * h * 4;
     XORsz = Math.ceil( (w * h) / 8.0 );
+    ANDsz = Math.ceil( (w * h) / 8.0 );
 
     // Main header
-    cur.push16le(0);      // Reserved
-    cur.push16le(2);      // .CUR type
-    cur.push16le(1);      // Number of images, 1 for non-animated ico
+    cur.push16le(0);      // 0: Reserved
+    cur.push16le(2);      // 2: .CUR type
+    cur.push16le(1);      // 4: Number of images, 1 for non-animated ico
 
-    // Cursor #1 header
-    cur.push(w);          // width
-    cur.push(h);          // height
-    cur.push(0);          // colors, 0 -> true-color
-    cur.push(0);          // reserved
-    cur.push16le(hotx);   // hotspot x coordinate
-    cur.push16le(hoty);   // hotspot y coordinate
-    cur.push32le(IHDRsz + XORsz + ANDsz); // cursor data byte size
-    cur.push32le(22);     // offset of cursor data in the file
+    // Cursor #1 header (ICONDIRENTRY)
+    cur.push(w);          // 6: width
+    cur.push(h);          // 7: height
+    cur.push(0);          // 8: colors, 0 -> true-color
+    cur.push(0);          // 9: reserved
+    cur.push16le(hotx);   // 10: hotspot x coordinate
+    cur.push16le(hoty);   // 12: hotspot y coordinate
+    cur.push32le(IHDRsz + RGBsz + XORsz + ANDsz);
+                          // 14: cursor data byte size
+    cur.push32le(22);     // 18: offset of cursor data in the file
 
-    // Cursor #1 InfoHeader
-    cur.push32le(IHDRsz); // Infoheader size
-    cur.push32le(w);      // Cursor width
-    cur.push32le(h*2);    // XOR+AND height
-    cur.push16le(1);      // number of planes
-    cur.push16le(32);     // bits per pixel
-    cur.push32le(0);      // Type of compression
-    cur.push32le(XORsz + ANDsz); // Size of Image
-    cur.push32le(0);
-    cur.push32le(0);
-    cur.push32le(0);
-    cur.push32le(0);
 
-    // XOR/color data
+    // Cursor #1 InfoHeader (ICONIMAGE/BITMAPINFO)
+    cur.push32le(IHDRsz); // 22: Infoheader size
+    cur.push32le(w);      // 26: Cursor width
+    cur.push32le(h*2);    // 30: XOR+AND height
+    cur.push16le(1);      // 34: number of planes
+    cur.push16le(32);     // 36: bits per pixel
+    cur.push32le(0);      // 38: Type of compression
+
+    cur.push32le(XORsz + ANDsz); // 43: Size of Image
+                                 // Gimp leaves this as 0
+
+    cur.push32le(0);      // 46: reserved
+    cur.push32le(0);      // 50: reserved
+    cur.push32le(0);      // 54: reserved
+    cur.push32le(0);      // 58: reserved
+
+    // 62: color data (RGBQUAD icColors[])
     for (y = h-1; y >= 0; y -= 1) {
         for (x = 0; x < w; x += 1) {
             idx = y * Math.ceil(w / 8) + Math.floor(x/8);
             alpha = (mask[idx] << (x % 8)) & 0x80 ? 255 : 0;
 
-            if (conf.true_color) {
-                idx = ((w * y) + x) * 4;
-                cur.push(pixels[idx + 2]); // blue
-                cur.push(pixels[idx + 1]); // green
-                cur.push(pixels[idx + 0]); // red
-                cur.push(alpha); // red
-            } else {
+            if (cmap) {
                 idx = (w * y) + x;
                 rgb = cmap[pixels[idx]];
                 cur.push(rgb[2]);          // blue
                 cur.push(rgb[1]);          // green
                 cur.push(rgb[0]);          // red
                 cur.push(alpha);           // alpha
+            } else {
+                idx = ((w * y) + x) * 4;
+                cur.push(pixels[idx + 2]); // blue
+                cur.push(pixels[idx + 1]); // green
+                cur.push(pixels[idx + 0]); // red
+                cur.push(alpha);           // alpha
             }
         }
     }
 
-    // AND/bitmask data (ignored, just needs to be right size)
+    // XOR/bitmask data (BYTE icXOR[])
+    // (ignored, just needs to be right size)
+    for (y = 0; y < h; y += 1) {
+        for (x = 0; x < Math.ceil(w / 8); x += 1) {
+            cur.push(0x00);
+        }
+    }
+
+    // AND/bitmask data (BYTE icAND[])
+    // (ignored, just needs to be right size)
     for (y = 0; y < h; y += 1) {
         for (x = 0; x < Math.ceil(w / 8); x += 1) {
             cur.push(0x00);
@@ -782,13 +733,119 @@ that.changeCursor = function(pixels, mask, hotx, hoty, w, h) {
     }
 
     url = "data:image/x-icon;base64," + Base64.encode(cur);
-    conf.target.style.cursor = "url(" + url + ") " + hotx + " " + hoty + ", default";
+    target.style.cursor = "url(" + url + ") " + hotx + " " + hoty + ", default";
     //Util.Debug("<< changeCursor, cur.length: " + cur.length);
 };
 
 
 
-return constructor();  // Return the public API interface
+/* Translate DOM key down/up event to keysym value */
+function getKeysym(e) {
+    var evt, keysym;
+    evt = (e ? e : window.event);
 
-}  // End of Canvas()
+    /* Remap modifier and special keys */
+    switch ( evt.keyCode ) {
+        case 8         : keysym = 0xFF08; break; // BACKSPACE
+        case 9         : keysym = 0xFF09; break; // TAB
+        case 13        : keysym = 0xFF0D; break; // ENTER
+        case 27        : keysym = 0xFF1B; break; // ESCAPE
+        case 45        : keysym = 0xFF63; break; // INSERT
+        case 46        : keysym = 0xFFFF; break; // DELETE
+        case 36        : keysym = 0xFF50; break; // HOME
+        case 35        : keysym = 0xFF57; break; // END
+        case 33        : keysym = 0xFF55; break; // PAGE_UP
+        case 34        : keysym = 0xFF56; break; // PAGE_DOWN
+        case 37        : keysym = 0xFF51; break; // LEFT
+        case 38        : keysym = 0xFF52; break; // UP
+        case 39        : keysym = 0xFF53; break; // RIGHT
+        case 40        : keysym = 0xFF54; break; // DOWN
+        case 112       : keysym = 0xFFBE; break; // F1
+        case 113       : keysym = 0xFFBF; break; // F2
+        case 114       : keysym = 0xFFC0; break; // F3
+        case 115       : keysym = 0xFFC1; break; // F4
+        case 116       : keysym = 0xFFC2; break; // F5
+        case 117       : keysym = 0xFFC3; break; // F6
+        case 118       : keysym = 0xFFC4; break; // F7
+        case 119       : keysym = 0xFFC5; break; // F8
+        case 120       : keysym = 0xFFC6; break; // F9
+        case 121       : keysym = 0xFFC7; break; // F10
+        case 122       : keysym = 0xFFC8; break; // F11
+        case 123       : keysym = 0xFFC9; break; // F12
+        case 16        : keysym = 0xFFE1; break; // SHIFT
+        case 17        : keysym = 0xFFE3; break; // CONTROL
+        //case 18        : keysym = 0xFFE7; break; // Left Meta (Mac Option)
+        case 18        : keysym = 0xFFE9; break; // Left ALT (Mac Command)
+        default        : keysym = evt.keyCode; break;
+    }
+
+    /* Remap symbols */
+    switch (keysym) {
+        case 186       : keysym = 59; break; // ;  (IE)
+        case 187       : keysym = 61; break; // =  (IE)
+        case 188       : keysym = 44; break; // ,  (Mozilla, IE)
+        case 109       :                     // -  (Mozilla, Opera)
+            if (Util.Engine.gecko || Util.Engine.presto) {
+                         keysym = 45; }
+                                      break;
+        case 189       : keysym = 45; break; // -  (IE)
+        case 190       : keysym = 46; break; // .  (Mozilla, IE)
+        case 191       : keysym = 47; break; // /  (Mozilla, IE)
+        case 192       : keysym = 96; break; // `  (Mozilla, IE)
+        case 219       : keysym = 91; break; // [  (Mozilla, IE)
+        case 220       : keysym = 92; break; // \  (Mozilla, IE)
+        case 221       : keysym = 93; break; // ]  (Mozilla, IE)
+        case 222       : keysym = 39; break; // '  (Mozilla, IE)
+    }
+    
+    /* Remap shifted and unshifted keys */
+    if (!!evt.shiftKey) {
+        switch (keysym) {
+            case 48        : keysym = 41 ; break; // )  (shifted 0)
+            case 49        : keysym = 33 ; break; // !  (shifted 1)
+            case 50        : keysym = 64 ; break; // @  (shifted 2)
+            case 51        : keysym = 35 ; break; // #  (shifted 3)
+            case 52        : keysym = 36 ; break; // $  (shifted 4)
+            case 53        : keysym = 37 ; break; // %  (shifted 5)
+            case 54        : keysym = 94 ; break; // ^  (shifted 6)
+            case 55        : keysym = 38 ; break; // &  (shifted 7)
+            case 56        : keysym = 42 ; break; // *  (shifted 8)
+            case 57        : keysym = 40 ; break; // (  (shifted 9)
+
+            case 59        : keysym = 58 ; break; // :  (shifted `)
+            case 61        : keysym = 43 ; break; // +  (shifted ;)
+            case 44        : keysym = 60 ; break; // <  (shifted ,)
+            case 45        : keysym = 95 ; break; // _  (shifted -)
+            case 46        : keysym = 62 ; break; // >  (shifted .)
+            case 47        : keysym = 63 ; break; // ?  (shifted /)
+            case 96        : keysym = 126; break; // ~  (shifted `)
+            case 91        : keysym = 123; break; // {  (shifted [)
+            case 92        : keysym = 124; break; // |  (shifted \)
+            case 93        : keysym = 125; break; // }  (shifted ])
+            case 39        : keysym = 34 ; break; // "  (shifted ')
+        }
+    } else if ((keysym >= 65) && (keysym <=90)) {
+        /* Remap unshifted A-Z */
+        keysym += 32;
+    } else if (evt.keyLocation === 3) {
+        // numpad keys
+        switch (keysym) {
+            case 96 : keysym = 48; break; // 0
+            case 97 : keysym = 49; break; // 1
+            case 98 : keysym = 50; break; // 2
+            case 99 : keysym = 51; break; // 3
+            case 100: keysym = 52; break; // 4
+            case 101: keysym = 53; break; // 5
+            case 102: keysym = 54; break; // 6
+            case 103: keysym = 55; break; // 7
+            case 104: keysym = 56; break; // 8
+            case 105: keysym = 57; break; // 9
+            case 109: keysym = 45; break; // -
+            case 110: keysym = 46; break; // .
+            case 111: keysym = 47; break; // /
+        }
+    }
+
+    return keysym;
+}
 
