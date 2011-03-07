@@ -4,14 +4,14 @@
 // Reference: http://tools.ietf.org/html/draft-hixie-thewebsocketprotocol
 
 (function() {
-  
+
   if (window.WebSocket) return;
 
   var console = window.console;
   if (!console || !console.log || !console.error) {
     console = {log: function(){ }, error: function(){ }};
   }
-  
+
   if (!swfobject.hasFlashPlayerVersion("9.0.0")) {
     console.error("Flash Player is not installed.");
     return;
@@ -35,7 +35,7 @@
       });
     }, 0);
   };
-  
+
   WebSocket.prototype.__createFlash = function(url, protocol, proxyHost, proxyPort, headers) {
     var self = this;
     self.__flash =
@@ -161,7 +161,7 @@
           this.readyState = event.readyState;
         }
         if (event.type == "open") {
-          
+
           if (this.__timer) clearInterval(this.__timer);
           if (window.opera) {
             // Workaround for weird behavior of Opera which sometimes drops events.
@@ -171,14 +171,14 @@
             }, 500);
           }
           if (this.onopen) this.onopen();
-          
+
         } else if (event.type == "close") {
-          
+
           if (this.__timer) clearInterval(this.__timer);
           if (this.onclose) this.onclose();
-          
+
         } else if (event.type == "message") {
-          
+
           if (this.onmessage) {
             var data = decodeURIComponent(event.data);
             var e;
@@ -191,12 +191,12 @@
             }
             this.onmessage(e);
           }
-          
+
         } else if (event.type == "error") {
-          
+
           if (this.__timer) clearInterval(this.__timer);
           if (this.onerror) this.onerror();
-          
+
         } else {
           throw "unknown event type: " + event.type;
         }
@@ -205,7 +205,7 @@
       }
     }
   };
-  
+
   /**
    * @param {object} object
    * @param {string} type
@@ -348,7 +348,7 @@
       WebSocket.__tasks.push(task);
     }
   };
-  
+
   WebSocket.__isFlashLite = function() {
     if (!window.navigator || !window.navigator.mimeTypes) return false;
     var mimeType = window.navigator.mimeTypes["application/x-shockwave-flash"];
@@ -373,5 +373,5 @@
       window.attachEvent("onload", WebSocket.__initialize);
     }
   }
-  
+
 })();
