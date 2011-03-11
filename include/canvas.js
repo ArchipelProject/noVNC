@@ -6,9 +6,8 @@
  * See README.md for usage and integration instructions.
  */
 
-//"use strict";
 /*jslint browser: true, white: false, bitwise: false */
-/*global window, Util, Base64 */
+/*global window, Util, Base64, changeCursor, getKeysym */
 
 Canvas = function(conf) {
 
@@ -176,7 +175,7 @@ function constructor() {
                         c_flush_timer = setTimeout(that.flush, 100);
                     }
                 };
-            })();
+            }());
         }
     }
 
@@ -631,7 +630,7 @@ that.changeCursor = function(pixels, mask, hotx, hoty, w, h) {
     } else {
         changeCursor(conf.target, pixels, mask, hotx, hoty, w, h, conf.colourMap);
     }
-}
+};
 
 return constructor();  // Return the public API interface
 
