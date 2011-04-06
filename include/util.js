@@ -1,6 +1,6 @@
 /*
  * noVNC: HTML5 VNC client
- * Copyright (C) 2010 Joel Martin
+ * Copyright (C) 2011 Joel Martin
  * Licensed under LGPL-3 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
@@ -77,7 +77,7 @@ Util.init_logging = function (level) {
 };
 Util.get_logging = function () {
     return Util._log_level;
-}
+};
 // Initialize logging level
 Util.init_logging();
 
@@ -103,6 +103,10 @@ Util.conf_default = function(cfg, api, v, type, defval, desc) {
                     }
                 } else if (type in {'integer':1, 'int':1}) {
                     val = parseInt(val, 10);
+                } else if (type === 'func') {
+                    if (!val) {
+                        val = function () {};
+                    }
                 }
                 cfg[v] = val;
             };

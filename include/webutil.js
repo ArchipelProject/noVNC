@@ -1,6 +1,6 @@
 /*
  * noVNC: HTML5 VNC client
- * Copyright (C) 2010 Joel Martin
+ * Copyright (C) 2011 Joel Martin
  * Licensed under LGPL-3 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
@@ -60,7 +60,11 @@ WebUtil.dirObj = function (obj, depth, parent) {
             msg += WebUtil.dirObj(obj[i], depth-1, parent + "." + i);
         } else {
             //val = new String(obj[i]).replace("\n", " ");
-            val = obj[i].toString().replace("\n", " ");
+            if (typeof(obj[i]) === "undefined") {
+                val = "undefined";
+            } else {
+                val = obj[i].toString().replace("\n", " ");
+            }
             if (val.length > 30) {
                 val = val.substr(0,30) + "...";
             } 

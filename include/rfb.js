@@ -1,13 +1,13 @@
 /*
  * noVNC: HTML5 VNC client
- * Copyright (C) 2010 Joel Martin
+ * Copyright (C) 2011 Joel Martin
  * Licensed under LGPL-3 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
  */
 
 /*jslint white: false, browser: true, bitwise: false, plusplus: false */
-/*global window, Util, Canvas, Websock, Websock_native, Base64, DES, noVNC_logo */
+/*global window, Util, Canvas, Keyboard, Mouse, Websock, Websock_native, Base64, DES, noVNC_logo */
 
 
 RFB = function(conf) {
@@ -22,6 +22,7 @@ var that           = {},         // Public API interface
     keyEvent, pointerEvent, clientCutText,
 
     extract_data_uri, scan_tight_imgQ,
+    keyPress, mouseButton, mouseMove,
 
     checkEvents,  // Overridable for testing
 
@@ -62,6 +63,8 @@ var that           = {},         // Public API interface
 
     ws             = null,   // Websock object
     canvas         = null,   // Canvas object
+    keyboard       = null,   // Keyboard input handler object
+    mouse          = null,   // Mouse input handler object
     sendTimer      = null,   // Send Queue check timer
     connTimer      = null,   // connection timer
     disconnTimer   = null,   // disconnection timer
@@ -127,7 +130,11 @@ cdef('true_color',      'bool', true,  'Request true color pixel data');
 cdef('local_cursor',    'bool', false, 'Request locally rendered cursor');
 cdef('shared',          'bool', true,  'Request shared mode');
 
-cdef('connectTimeout',    'int', 2,    'Time (s) to wait for connection');
+if (Websock_native) {
+    cdef('connectTimeout',    'int', 2,    'Time (s) to wait for connection');
+} else {
+    cdef('connectTimeout',    'int', 5,    'Time (s) to wait for connection');
+}
 cdef('disconnectTimeout', 'int', 3,    'Time (s) to wait for disconnection');
 cdef('check_rate',        'int', 217,  'Timing (ms) of send/receive check');
 cdef('fbu_req_rate',      'int', 1413, 'Timing (ms) of frameBufferUpdate requests');
@@ -159,6 +166,13 @@ that.set_local_cursor = function(cursor) {
 that.get_canvas = function() {
     return canvas;
 };
+that.get_keyboard = function() {
+    return keyboard;
+};
+that.get_mouse = function() {
+    return mouse;
+};
+
 
 
 
@@ -179,10 +193,14 @@ function constructor() {
         encNames[encodings[i][1]] = encodings[i][0];
         encStats[encodings[i][1]] = [0, 0];
     }
-    // Initialize canvas
+    // Initialize canvas, mouse and keyboard
     try {
-        canvas = new Canvas({'target': conf.target,
-                             'focusContainer': conf.focusContainer});
+        canvas   = new Canvas({'target': conf.target});
+        keyboard = new Keyboard({'target': conf.focusContainer,
+                                 'keyPress': keyPress});
+        mouse    = new Mouse({'target': conf.target,
+                              'mouseButton': mouseButton,
+                              'mouseMove': mouseMove});
     } catch (exc) {
         Util.Error("Canvas exception: " + exc);
         updateState('fatal', "No working Canvas");
@@ -200,7 +218,7 @@ function constructor() {
                   Util.Flash.version);
         if ((! Util.Flash) ||
             (Util.Flash.version < 9)) {
-            updateState('fatal', "WebSockets or Adobe Flash is required");
+            updateState('fatal', "WebSockets or <a href='http://get.adobe.com/flashplayer'>Adobe Flash<\/a> is required");
         } else if (document.location.href.substr(0, 7) === "file://") {
             updateState('fatal',
                     "'file://' URL is incompatible with Adobe Flash");
@@ -346,7 +364,9 @@ updateState = function(state, statusMsg) {
         }
 
         if (canvas && canvas.getContext()) {
-            canvas.stop();
+            keyboard.ungrab();
+            mouse.ungrab();
+            canvas.defaultCursor();
             if (Util.get_logging() !== 'debug') {
                 canvas.clear();
             }
@@ -355,7 +375,7 @@ updateState = function(state, statusMsg) {
                 (state === 'loaded')) {
                 // Show noVNC logo on load and when disconnected if
                 // debug is off
-                if (noVNC_logo) {
+                if (typeof noVNC_logo !== 'undefined' && noVNC_logo) {
                     canvas.resize(noVNC_logo.width, noVNC_logo.height);
                     canvas.blitStringImage(noVNC_logo.data, 0, 0);
                 }
@@ -539,14 +559,14 @@ checkEvents = function() {
     setTimeout(checkEvents, conf.check_rate);
 };
 
-function keyPress(keysym, down) {
+keyPress = function(keysym, down) {
     var arr;
     arr = keyEvent(keysym, down);
     arr = arr.concat(fbUpdateRequest(1));
     ws.send(arr);
-}
+};
 
-function mouseButton(x, y, down, bmask) {
+mouseButton = function(x, y, down, bmask) {
     if (down) {
         mouse_buttonMask |= bmask;
     } else {
@@ -554,12 +574,12 @@ function mouseButton(x, y, down, bmask) {
     }
     mouse_arr = mouse_arr.concat( pointerEvent(x, y) );
     flushClient();
-}
+};
 
-function mouseMove(x, y) {
+mouseMove = function(x, y) {
     //Util.Debug('>> mouseMove ' + x + "," + y);
     mouse_arr = mouse_arr.concat( pointerEvent(x, y) );
-}
+};
 
 
 //
@@ -740,7 +760,8 @@ init_msg = function() {
         fb_name = ws.rQshiftStr(name_length);
 
         canvas.resize(fb_width, fb_height, conf.true_color);
-        canvas.start(keyPress, mouseButton, mouseMove);
+        keyboard.grab();
+        mouse.grab();
 
         if (conf.true_color) {
             fb_Bpp           = 4;

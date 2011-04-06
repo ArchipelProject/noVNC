@@ -1,6 +1,6 @@
 /*
  * noVNC: HTML5 VNC client
- * Copyright (C) 2010 Joel Martin
+ * Copyright (C) 2011 Joel Martin
  * Licensed under LGPL-3 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
@@ -9,9 +9,6 @@
 "use strict";
 /*jslint evil: true */
 /*global window, document, INCLUDE_URI */
-
-// Globals defined here
-var VNC_native_ws, WEB_SOCKET_SWF_LOCATION;
 
 /*
  * Load supporting scripts
@@ -36,6 +33,7 @@ function get_INCLUDE_URI() {
     extra += start + "base64.js" + end;
     extra += start + "websock.js" + end;
     extra += start + "des.js" + end;
+    extra += start + "input.js" + end;
     extra += start + "canvas.js" + end;
     extra += start + "rfb.js" + end;
 
