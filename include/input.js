@@ -12,7 +12,7 @@
 // Keyboard event handler
 //
 
-function Keyboard(conf) {
+Keyboard = function(conf) {
     "use strict";
 
 conf               = conf || {}; // Configuration
@@ -442,7 +442,7 @@ return that;  // Return the public API interface
 // Mouse event handler
 //
 
-function Mouse(conf) {
+Mouse = function(conf) {
     "use strict";
 
 conf               = conf || {}; // Configuration
