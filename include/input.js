@@ -459,6 +459,7 @@ cdef('focused',        'bool', true, 'Capture and send mouse clicks/movement');
 
 cdef('mouseButton',    'func', null, 'Handler for mouse button click/release');
 cdef('mouseMove',      'func', null, 'Handler for mouse movement');
+cdef('scale',          'float', 1,   'VNC viewport scale factor');
 
 that.set_target = function () { throw("target cannot be changed"); }
 
