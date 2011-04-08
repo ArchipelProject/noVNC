@@ -45,30 +45,26 @@ that.set_target = function () { throw("target cannot be changed"); }
 function getKeysymSpecial(evt, kind) {
     var keysym = null;
 
-    switch ( evt.keyCode ) {
-        case 8         : keysym = 0xFF08; break; // BACKSPACE
-        case 9         : keysym = 0xFF09; break; // TAB
-        case 13        : keysym = 0xFF0D; break; // ENTER
-        case 27        : keysym = 0xFF1B; break; // ESCAPE
-        case 46        : keysym = 0xFFFF; break; // DELETE
-        case 36        : keysym = 0xFF50; break; // HOME
-        case 35        : keysym = 0xFF57; break; // END
-        case 33        : keysym = 0xFF55; break; // PAGE_UP
-        case 34        : keysym = 0xFF56; break; // PAGE_DOWN
-        case 37        : keysym = 0xFF51; break; // LEFT
-        case 38        : keysym = 0xFF52; break; // UP
-        case 39        : keysym = 0xFF53; break; // RIGHT
-        case 40        : keysym = 0xFF54; break; // DOWN
-        case 16        : keysym = 0xFFE1; break; // SHIFT
-        case 17        : keysym = 0xFFE3; break; // CONTROL
-        //case 18        : keysym = 0xFFE7; break; // Left Meta (Mac Option)
-        case 18        : keysym = 0xFFE9; break; // Left ALT (Mac Command)
-
-        default        :                  break;
-    }
-
     if (kind === 'down') {
         switch ( evt.keyCode ) {
+            case 8         : keysym = 0xFF08; break; // BACKSPACE
+            case 9         : keysym = 0xFF09; break; // TAB
+            case 13        : keysym = 0xFF0D; break; // ENTER
+            case 27        : keysym = 0xFF1B; break; // ESCAPE
+            case 46        : keysym = 0xFFFF; break; // DELETE
+            case 36        : keysym = 0xFF50; break; // HOME
+            case 35        : keysym = 0xFF57; break; // END
+            case 33        : keysym = 0xFF55; break; // PAGE_UP
+            case 34        : keysym = 0xFF56; break; // PAGE_DOWN
+            case 37        : keysym = 0xFF51; break; // LEFT
+            case 38        : keysym = 0xFF52; break; // UP
+            case 39        : keysym = 0xFF53; break; // RIGHT
+            case 40        : keysym = 0xFF54; break; // DOWN
+            case 16        : keysym = 0xFFE1; break; // SHIFT
+            case 17        : keysym = 0xFFE3; break; // CONTROL
+            //case 18        : keysym = 0xFFE7; break; // Left Meta (Mac Option)
+            case 18        : keysym = 0xFFE9; break; // Left ALT (Mac Command)
+
             case 45        : keysym = 0xFF63; break; // INSERT
                                                      // '-' during keyPress
             case 112       : keysym = 0xFFBE; break; // F1
