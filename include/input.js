@@ -12,7 +12,7 @@
 // Keyboard event handler
 //
 
-Keyboard = function(conf) {
+Keyboard = function(defaults) {
 
 var that           = {},  // Public API methods
     conf           = {},  // Configuration attributes
@@ -446,7 +446,7 @@ return that;  // Return the public API interface
 // Mouse event handler
 //
 
-Mouse = function(conf) {
+Mouse = function(defaults) {
 
 var that           = {},  // Public API methods
     conf           = {};  // Configuration attributes

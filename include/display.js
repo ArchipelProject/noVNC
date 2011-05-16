@@ -9,7 +9,7 @@
 /*jslint browser: true, white: false, bitwise: false */
 /*global Util, Base64, changeCursor */
 
-Canvas = function(conf) {
+Display = function(defaults) {
 
 var that           = {},  // Public API methods
     conf           = {},  // Configuration attributes
