@@ -41,7 +41,6 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-//"use strict";
 /*jslint white: false, bitwise: false, plusplus: false */
 /*global console */
 

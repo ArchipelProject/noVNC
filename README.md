@@ -33,16 +33,20 @@ See more screenshots <a href="http://kanaka.github.com/noVNC/screenshots.html">h
   Feature [#1935](http://code.osuosl.org/issues/1935).
 
 * [Archipel](http://archipelproject.org):
-  [Video demo](http://antoinemercadal.fr/archipelblog/wp-content/themes/ArchipelWPTemplate/video_youtube.php?title=VNC%20Demonstration&id=te_bzW574Zo)
+  Demo [video](http://antoinemercadal.fr/archipelblog/wp-content/themes/ArchipelWPTemplate/video_youtube.php?title=VNC%20Demonstration&id=te_bzW574Zo)
 
 * [openQRM](http://www.openqrm.com/): VNC plugin available
   by request. Probably included in [version
-  4.8](http://www.openqrm.com/?q=node/15). [Video
-    demo](http://www.openqrm-enterprise.com/news/details/article/remote-vm-console-plugin-available.html).
+  4.8](http://www.openqrm.com/?q=node/15). Demo
+  [video](http://www.openqrm-enterprise.com/news/details/article/remote-vm-console-plugin-available.html).
 
 * [OpenNode](http://www.opennodecloud.com/): uses noVNC in
   [OpenNode Management Console](http://opennode.activesys.org/about/software-included-in-opennode/).
-  [OMC Screencast](http://opennode.activesys.org/about/opennode-management-console-screencast/).
+  OMC [Screencast](http://opennode.activesys.org/about/opennode-management-console-screencast/).
+
+* [OpenStack](http://www.openstack.org): uses noVNC in Cactus release
+  of [OpenStack Compute (Nova)](http://nova.openstack.org/runnova/vncconsole.html).
+  OpenStack [Screencast](http://player.vimeo.com/video/20787736?autoplay=1) with noVNC shown at about 2:17.
 
 ### Browser Requirements
 
@@ -61,7 +65,7 @@ See more screenshots <a href="http://kanaka.github.com/noVNC/screenshots.html">h
   mean noVNC is painfully slow.
 
 * I maintain a more detailed list of browser compatibility <a
-  href="wiki/Browser-support">here</a>.
+  href="https://github.com/kanaka/noVNC/wiki/Browser-support">here</a>.
 
 
 ### Server Requirements
@@ -100,11 +104,11 @@ There a few reasons why a proxy is required:
 
 ### Other Pages
 
-* [Advanced Usage](wiki/Advanced-usage). Generating an SSL
+* [Advanced Usage](https://github.com/kanaka/noVNC/wiki/Advanced-usage). Generating an SSL
   certificate, starting a VNC server, advanced websockify usage, etc.
 
-* [Integrating noVNC](wiki/Integration) into existing projects.
+* [Integrating noVNC](https://github.com/kanaka/noVNC/wiki/Integration) into existing projects.
 
-* [Troubleshooting noVNC](wiki/Troubleshooting) problems.
+* [Troubleshooting noVNC](https://github.com/kanaka/noVNC/wiki/Troubleshooting) problems.
 
 

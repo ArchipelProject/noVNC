@@ -7,16 +7,17 @@
  */
 
 /*jslint white: false, browser: true, bitwise: false, plusplus: false */
-/*global window, Util, Canvas, Keyboard, Mouse, Websock, Websock_native, Base64, DES, noVNC_logo */
+/*global window, Util, Display, Keyboard, Mouse, Websock, Websock_native, Base64, DES, noVNC_logo */
 
 
-RFB = function(conf) {
-conf               = conf || {}; // Configuration
-var that           = {},         // Public API interface
+RFB = function(defaults) {
+
+var that           = {},  // Public API methods
+    conf           = {},  // Configuration attributes
 
     // Pre-declare private functions used before definitions (jslint)
-    init_vars, updateState, init_msg, normal_msg,
-    framebufferUpdate, print_stats,
+    init_vars, updateState, fail, handle_message,
+    init_msg, normal_msg, framebufferUpdate, print_stats,
 
     pixelFormat, clientEncodings, fbUpdateRequest,
     keyEvent, pointerEvent, clientCutText,
@@ -62,7 +63,7 @@ var that           = {},         // Public API interface
     encStats       = {},     // [rectCnt, rectCntTot]
 
     ws             = null,   // Websock object
-    canvas         = null,   // Canvas object
+    display        = null,   // Display object
     keyboard       = null,   // Keyboard input handler object
     mouse          = null,   // Mouse input handler object
     sendTimer      = null,   // Send Queue check timer
@@ -111,51 +112,56 @@ var that           = {},         // Public API interface
 
     test_mode        = false,
 
+    def_con_timeout  = Websock_native ? 2 : 5,
+
     /* Mouse state */
     mouse_buttonMask = 0,
     mouse_arr        = [];
 
+// Configuration attributes
+Util.conf_defaults(conf, that, defaults, [
+    ['target',             'wo', 'dom', null, 'VNC display rendering Canvas object'],
+    ['focusContainer',     'wo', 'dom', document, 'DOM element that captures keyboard input'],
 
-//
-// Configuration settings
-//
-function cdef(v, type, defval, desc) {
-    Util.conf_default(conf, that, v, type, defval, desc); }
+    ['encrypt',            'rw', 'bool', false, 'Use TLS/SSL/wss encryption'],
+    ['true_color',         'rw', 'bool', true,  'Request true color pixel data'],
+    ['local_cursor',       'rw', 'bool', false, 'Request locally rendered cursor'],
+    ['shared',             'rw', 'bool', true,  'Request shared mode'],
 
-cdef('target',            'str', null, 'VNC viewport rendering Canvas');
-cdef('focusContainer',    'dom', document, 'Area that traps keyboard input');
+    ['connectTimeout',     'rw', 'int', def_con_timeout, 'Time (s) to wait for connection'],
+    ['disconnectTimeout',  'rw', 'int', 3,    'Time (s) to wait for disconnection'],
 
-cdef('encrypt',         'bool', false, 'Use TLS/SSL/wss encryption');
-cdef('true_color',      'bool', true,  'Request true color pixel data');
-cdef('local_cursor',    'bool', false, 'Request locally rendered cursor');
-cdef('shared',          'bool', true,  'Request shared mode');
+    ['check_rate',         'rw', 'int', 217,  'Timing (ms) of send/receive check'],
+    ['fbu_req_rate',       'rw', 'int', 1413, 'Timing (ms) of frameBufferUpdate requests'],
 
-if (Websock_native) {
-    cdef('connectTimeout',    'int', 2,    'Time (s) to wait for connection');
-} else {
-    cdef('connectTimeout',    'int', 5,    'Time (s) to wait for connection');
-}
-cdef('disconnectTimeout', 'int', 3,    'Time (s) to wait for disconnection');
-cdef('check_rate',        'int', 217,  'Timing (ms) of send/receive check');
-cdef('fbu_req_rate',      'int', 1413, 'Timing (ms) of frameBufferUpdate requests');
+    // Callback functions
+    ['onUpdateState',      'rw', 'func', function() { },
+        'onUpdateState(rfb, state, oldstate, statusMsg): RFB state update/change '],
+    ['onPasswordRequired', 'rw', 'func', function() { },
+        'onPasswordRequired(rfb): VNC password is required '],
+    ['onClipboard',        'rw', 'func', function() { },
+        'onClipboard(rfb, text): RFB clipboard contents received'],
+    ['onBell',             'rw', 'func', function() { },
+        'onBell(rfb): RFB Bell message received '],
+    ['onFBUReceive',       'rw', 'func', function() { },
+        'onFBUReceive(rfb, fbu): RFB FBU received but not yet processed '],
+    ['onFBUComplete',      'rw', 'func', function() { },
+        'onFBUComplete(rfb, fbu): RFB FBU received and processed '],
 
-cdef('updateState',
-     'func', function() { Util.Debug("updateState stub"); },
-     'callback: state update');
-cdef('clipboardReceive',
-     'func', function() { Util.Debug("clipboardReceive stub"); },
-     'callback: clipboard contents received');
+    // These callback names are deprecated
+    ['updateState',        'rw', 'func', function() { },
+        'obsolete, use onUpdateState'],
+    ['clipboardReceive',   'rw', 'func', function() { },
+        'obsolete, use onClipboard']
+    ]);
 
-cdef('desktopSizeChanged', 
-     'func', function() { Util.Debug("desktopSizeChanged stub"); },
-     'callback: desktop size changed');
 
-// Override/add some specific getters/setters
+// Override/add some specific configuration getters/setters
 that.set_local_cursor = function(cursor) {
     if ((!cursor) || (cursor in {'0':1, 'no':1, 'false':1})) {
         conf.local_cursor = false;
     } else {
-        if (canvas.get_cursor_uri()) {
+        if (display.get_cursor_uri()) {
             conf.local_cursor = true;
         } else {
             Util.Warn("Browser does not support local cursor");
@@ -163,18 +169,12 @@ that.set_local_cursor = function(cursor) {
     }
 };
 
-that.get_canvas = function() {
-    return canvas;
-};
-that.get_keyboard = function() {
-    return keyboard;
-};
-that.get_mouse = function() {
-    return mouse;
-};
+// These are fake configuration getters
+that.get_display = function() { return display; };
 
+that.get_keyboard = function() { return keyboard; };
 
-
+that.get_mouse = function() { return mouse; };
 
 
 
@@ -182,7 +182,8 @@ that.get_mouse = function() {
 // Setup routines
 //
 
-// Create the public API interface and initialize
+// Create the public API interface and initialize values that stay
+// constant across connect/disconnect
 function constructor() {
     var i, rmode;
     Util.Debug(">> RFB.constructor");
@@ -193,19 +194,49 @@ function constructor() {
         encNames[encodings[i][1]] = encodings[i][0];
         encStats[encodings[i][1]] = [0, 0];
     }
-    // Initialize canvas, mouse and keyboard
+    // Initialize display, mouse, keyboard, and websock
     try {
-        canvas   = new Canvas({'target': conf.target});
-        keyboard = new Keyboard({'target': conf.focusContainer,
-                                 'keyPress': keyPress});
-        mouse    = new Mouse({'target': conf.target,
-                              'mouseButton': mouseButton,
-                              'mouseMove': mouseMove});
+        display   = new Display({'target': conf.target});
     } catch (exc) {
-        Util.Error("Canvas exception: " + exc);
-        updateState('fatal', "No working Canvas");
+        Util.Error("Display exception: " + exc);
+        updateState('fatal', "No working Display");
     }
-    rmode = canvas.get_render_mode();
+    keyboard = new Keyboard({'target': conf.focusContainer,
+                                'onKeyPress': keyPress});
+    mouse    = new Mouse({'target': conf.target,
+                            'onMouseButton': mouseButton,
+                            'onMouseMove': mouseMove});
+
+    rmode = display.get_render_mode();
+
+    if (typeof noVNC_logo !== 'undefined') {
+        display.set_logo(noVNC_logo);
+    }
+
+    ws = new Websock();
+    ws.on('message', handle_message);
+    ws.on('open', function() {
+        if (rfb_state === "connect") {
+            updateState('ProtocolVersion', "Starting VNC handshake");
+        } else {
+            fail("Got unexpected WebSockets connection");
+        }
+    });
+    ws.on('close', function() {
+        if (rfb_state === 'disconnect') {
+            updateState('disconnected', 'VNC disconnected');
+        } else if (rfb_state === 'ProtocolVersion') {
+            fail('Failed to connect to server');
+        } else if (rfb_state in {'failed':1, 'disconnected':1}) {
+            Util.Error("Received onclose while disconnected");
+        } else  {
+            fail('Server disconnected');
+        }
+    });
+    ws.on('error', function(e) {
+        fail("WebSock error: " + e);
+    });
+
 
     init_vars();
 
@@ -247,35 +278,12 @@ function connect() {
     Util.Debug("<< RFB.connect");
 }
 
+// Initialize variables that are reset before each connection
 init_vars = function() {
     var i;
 
     /* Reset state */
-    ws = new Websock();
     ws.init();
-
-    ws.on('message', handle_message);
-    ws.on('open', function() {
-        if (rfb_state === "connect") {
-            updateState('ProtocolVersion', "Starting VNC handshake");
-        } else {
-            fail("Got unexpected WebSockets connection");
-        }
-    });
-    ws.on('close', function() {
-        if (rfb_state === 'disconnect') {
-            updateState('disconnected', 'VNC disconnected');
-        } else if (rfb_state === 'ProtocolVersion') {
-            fail('Failed to connect to server');
-        } else if (rfb_state in {'failed':1, 'disconnected':1}) {
-            Util.Error("Received onclose while disconnected");
-        } else  {
-            fail('Server disconnected');
-        }
-    });
-    ws.on('error', function(e) {
-        fail("WebSock error: " + e);
-    });
 
     FBU.rects        = 0;
     FBU.subrects     = 0;  // RRE and HEXTILE
@@ -318,25 +326,23 @@ print_stats = function() {
 
 
 /*
- * Running states:
- *   disconnected - idle state
- *   normal       - connected
- *
  * Page states:
  *   loaded       - page load, equivalent to disconnected
- *   connect      - starting initialization
- *   disconnect   - starting disconnect
- *   failed       - abnormal transition to disconnected
+ *   disconnected - idle state
+ *   connect      - starting to connect (to ProtocolVersion)
+ *   normal       - connected
+ *   disconnect   - starting to disconnect
+ *   failed       - abnormal disconnect
  *   fatal        - failed to load page, or fatal error
  *
- * VNC initialization states:
- *   ProtocolVersion
+ * RFB protocol initialization states:
+ *   ProtocolVersion 
  *   Security
  *   Authentication
  *   password     - waiting for password, not part of RFB
  *   SecurityResult
  *   ClientInitialization - not triggered by server message
- *   ServerInitialization
+ *   ServerInitialization (to normal)
  */
 updateState = function(state, statusMsg) {
     var func, cmsg, oldstate = rfb_state;
@@ -363,22 +369,15 @@ updateState = function(state, statusMsg) {
             msgTimer = null;
         }
 
-        if (canvas && canvas.getContext()) {
+        if (display && display.get_context()) {
             keyboard.ungrab();
             mouse.ungrab();
-            canvas.defaultCursor();
-            if (Util.get_logging() !== 'debug') {
-                canvas.clear();
-            }
-
+            display.defaultCursor();
             if ((Util.get_logging() !== 'debug') ||
                 (state === 'loaded')) {
                 // Show noVNC logo on load and when disconnected if
                 // debug is off
-                if (typeof noVNC_logo !== 'undefined' && noVNC_logo) {
-                    canvas.resize(noVNC_logo.width, noVNC_logo.height);
-                    canvas.blitStringImage(noVNC_logo.data, 0, 0);
-                }
+                display.clear();
             }
         }
 
@@ -477,9 +476,11 @@ updateState = function(state, statusMsg) {
 
     if ((oldstate === 'failed') && (state === 'disconnected')) {
         // Leave the failed message
-        conf.updateState(that, state, oldstate);
+        conf.updateState(that, state, oldstate); // Obsolete
+        conf.onUpdateState(that, state, oldstate);
     } else {
-        conf.updateState(that, state, oldstate, statusMsg);
+        conf.updateState(that, state, oldstate, statusMsg); // Obsolete
+        conf.onUpdateState(that, state, oldstate, statusMsg);
     }
 };
 function fail(msg) {
@@ -681,7 +682,10 @@ init_msg = function() {
                 break;
             case 2:  // VNC authentication
                 if (rfb_password.length === 0) {
+                    // Notify via both callbacks since it is kind of
+                    // a RFB state change and a UI interface issue.
                     updateState('password', "Password Required");
+                    conf.onPasswordRequired(that);
                     return;
                 }
                 if (ws.rQwait("auth challenge", 16)) { return false; }
@@ -759,7 +763,8 @@ init_msg = function() {
         name_length   = ws.rQshift32();
         fb_name = ws.rQshiftStr(name_length);
 
-        canvas.resize(fb_width, fb_height, conf.true_color);
+        display.set_true_color(conf.true_color);
+        display.resize(fb_width, fb_height);
         keyboard.grab();
         mouse.grab();
 
@@ -796,7 +801,7 @@ init_msg = function() {
 normal_msg = function() {
     //Util.Debug(">> normal_msg");
 
-    var ret = true, msg_type, length,
+    var ret = true, msg_type, length, text,
         c, first_colour, num_colours, red, green, blue;
 
     if (FBU.rects > 0) {
@@ -820,13 +825,15 @@ normal_msg = function() {
             //Util.Debug("red after: " + red);
             green = parseInt(ws.rQshift16() / 256, 10);
             blue = parseInt(ws.rQshift16() / 256, 10);
-            canvas.set_colourMap([red, green, blue], first_colour + c);
+            Util.Debug("*** colourMap: " + display.get_colourMap());
+            display.set_colourMap([red, green, blue], first_colour + c);
         }
         Util.Info("Registered " + num_colours + " colourMap entries");
-        //Util.Debug("colourMap: " + canvas.get_colourMap());
+        //Util.Debug("colourMap: " + display.get_colourMap());
         break;
     case 2:  // Bell
-        Util.Warn("Bell (unsupported)");
+        Util.Debug("Bell");
+        conf.onBell(that);
         break;
     case 3:  // ServerCutText
         Util.Debug("ServerCutText");
@@ -835,7 +842,9 @@ normal_msg = function() {
         length = ws.rQshift32();
         if (ws.rQwait("ServerCutText", length, 8)) { return false; }
 
-        conf.clipboardReceive(that, ws.rQshiftStr(length));
+        text = ws.rQshiftStr(length);
+        conf.clipboardReceive(that, text); // Obsolete
+        conf.onClipboard(that, text);
         break;
     default:
         fail("Disconnected: illegal server message type " + msg_type);
@@ -882,6 +891,12 @@ framebufferUpdate = function() {
             FBU.height = (hdr[6] << 8) + hdr[7];
             FBU.encoding = parseInt((hdr[8] << 24) + (hdr[9] << 16) +
                                     (hdr[10] << 8) +  hdr[11], 10);
+
+            conf.onFBUReceive(that,
+                    {'x': FBU.x, 'y': FBU.y,
+                     'width': FBU.width, 'height': FBU.height,
+                     'encoding': FBU.encoding,
+                     'encodingName': encNames[FBU.encoding]});
 
             if (encNames[FBU.encoding]) {
                 // Debug:
@@ -943,6 +958,13 @@ framebufferUpdate = function() {
             return ret; // false ret means need more data
         }
     }
+
+    conf.onFBUComplete(that,
+            {'x': FBU.x, 'y': FBU.y,
+                'width': FBU.width, 'height': FBU.height,
+                'encoding': FBU.encoding,
+                'encodingName': encNames[FBU.encoding]});
+
     return true; // We finished this FBU
 };
 
@@ -963,7 +985,7 @@ encHandlers.RAW = function display_raw() {
     cur_y = FBU.y + (FBU.height - FBU.lines);
     cur_height = Math.min(FBU.lines,
                           Math.floor(ws.rQlen()/(FBU.width * fb_Bpp)));
-    canvas.blitImage(FBU.x, cur_y, FBU.width, cur_height,
+    display.blitImage(FBU.x, cur_y, FBU.width, cur_height,
             ws.get_rQ(), ws.get_rQi());
     ws.rQshiftBytes(FBU.width * cur_height * fb_Bpp);
     FBU.lines -= cur_height;
@@ -986,7 +1008,7 @@ encHandlers.COPYRECT = function display_copy_rect() {
     if (ws.rQwait("COPYRECT", 4)) { return false; }
     old_x = ws.rQshift16();
     old_y = ws.rQshift16();
-    canvas.copyImage(old_x, old_y, FBU.x, FBU.y, FBU.width, FBU.height);
+    display.copyImage(old_x, old_y, FBU.x, FBU.y, FBU.width, FBU.height);
     FBU.rects -= 1;
     FBU.bytes = 0;
     return true;
@@ -1000,7 +1022,7 @@ encHandlers.RRE = function display_rre() {
         if (ws.rQwait("RRE", 4+fb_Bpp)) { return false; }
         FBU.subrects = ws.rQshift32();
         color = ws.rQshiftBytes(fb_Bpp); // Background
-        canvas.fillRect(FBU.x, FBU.y, FBU.width, FBU.height, color);
+        display.fillRect(FBU.x, FBU.y, FBU.width, FBU.height, color);
     }
     while ((FBU.subrects > 0) && (ws.rQlen() >= (fb_Bpp + 8))) {
         color = ws.rQshiftBytes(fb_Bpp);
@@ -1008,7 +1030,7 @@ encHandlers.RRE = function display_rre() {
         y = ws.rQshift16();
         width = ws.rQshift16();
         height = ws.rQshift16();
-        canvas.fillRect(FBU.x + x, FBU.y + y, width, height, color);
+        display.fillRect(FBU.x + x, FBU.y + y, width, height, color);
         FBU.subrects -= 1;
     }
     //Util.Debug("   display_rre: rects: " + FBU.rects +
@@ -1101,10 +1123,10 @@ encHandlers.HEXTILE = function display_hextile() {
                 /* Weird: ignore blanks after RAW */
                 Util.Debug("     Ignoring blank after RAW");
             } else {
-                canvas.fillRect(x, y, w, h, FBU.background);
+                display.fillRect(x, y, w, h, FBU.background);
             }
         } else if (FBU.subencoding & 0x01) { // Raw
-            canvas.blitImage(x, y, w, h, rQ, rQi);
+            display.blitImage(x, y, w, h, rQ, rQi);
             rQi += FBU.bytes - 1;
         } else {
             if (FBU.subencoding & 0x02) { // Background
@@ -1116,7 +1138,7 @@ encHandlers.HEXTILE = function display_hextile() {
                 rQi += fb_Bpp;
             }
 
-            tile = canvas.getTile(x, y, w, h, FBU.background);
+            tile = display.getTile(x, y, w, h, FBU.background);
             if (FBU.subencoding & 0x08) { // AnySubrects
                 subrects = rQ[rQi];
                 rQi += 1;
@@ -1137,10 +1159,10 @@ encHandlers.HEXTILE = function display_hextile() {
                     sw = (wh >> 4)   + 1;
                     sh = (wh & 0x0f) + 1;
 
-                    canvas.setSubTile(tile, sx, sy, sw, sh, color);
+                    display.setSubTile(tile, sx, sy, sw, sh, color);
                 }
             }
-            canvas.putTile(tile);
+            display.putTile(tile);
         }
         ws.set_rQi(rQi);
         FBU.lastsubencoding = FBU.subencoding;
@@ -1205,7 +1227,7 @@ encHandlers.TIGHT_PNG = function display_tight_png() {
     case "fill":
         ws.rQshift8(); // shift off ctl
         color = ws.rQshiftBytes(fb_depth);
-        canvas.fillRect(FBU.x, FBU.y, FBU.width, FBU.height, color);
+        display.fillRect(FBU.x, FBU.y, FBU.width, FBU.height, color);
         break;
     case "jpeg":
     case "png":
@@ -1242,7 +1264,7 @@ extract_data_uri = function(arr) {
 
 scan_tight_imgQ = function() {
     var img, imgQ, ctx;
-    ctx = canvas.getContext();
+    ctx = display.get_context();
     if (rfb_state === 'normal') {
         imgQ = FBU.imgQ;
         while ((imgQ.length > 0) && (imgQ[0][0].complete)) {
@@ -1257,16 +1279,14 @@ encHandlers.DesktopSize = function set_desktopsize() {
     Util.Debug(">> set_desktopsize");
     fb_width = FBU.width;
     fb_height = FBU.height;
-    canvas.clear();
-    canvas.resize(fb_width, fb_height);
+    display.resize(fb_width, fb_height);
     timing.fbu_rt_start = (new Date()).getTime();
     // Send a new non-incremental request
     ws.send(fbUpdateRequest(0));
 
     FBU.bytes = 0;
     FBU.rects -= 1;
-    
-    conf.desktopSizeChanged(that, FBU);
+
     Util.Debug("<< set_desktopsize");
     return true;
 };
@@ -1287,7 +1307,7 @@ encHandlers.Cursor = function set_cursor() {
 
     //Util.Debug("   set_cursor, x: " + x + ", y: " + y + ", w: " + w + ", h: " + h);
 
-    canvas.changeCursor(ws.rQshiftBytes(pixelslength),
+    display.changeCursor(ws.rQshiftBytes(pixelslength),
                             ws.rQshiftBytes(masklength),
                             x, y, w, h);
 
