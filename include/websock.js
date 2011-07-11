@@ -62,7 +62,9 @@ var api = {},         // Public API
         'open'    : function() {},
         'close'   : function() {},
         'error'   : function() {}
-    };
+    },
+
+    test_mode = false;
 
 
 //
@@ -292,6 +294,15 @@ function close() {
     }
 }
 
+// Override internal functions for testing
+// Takes a send function, returns reference to recv function
+function testMode(override_send) {
+    test_mode = true;
+    api.send = override_send;
+    api.close = function () {};
+    return recv_message;
+}
+
 function constructor() {
     // Configuration settings
     api.maxBufferedAmount = 200;
@@ -322,6 +333,7 @@ function constructor() {
     api.init         = init;
     api.open         = open;
     api.close        = close;
+    api.testMode     = testMode;
 
     return api;
 }
