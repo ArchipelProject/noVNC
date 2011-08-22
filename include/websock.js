@@ -15,37 +15,12 @@
  */
 
 
-// Load Flash WebSocket emulator if needed
-
-// This is done by VNCCappuccino, as inserting <script> during Capp execution
-// doesn't work
-// if (window.WebSocket) {
-//     Websock_native = true;
-// } else {
-//     /* no builtin WebSocket so load web_socket.js */
-//     Websock_native = false;
-//
-//     (function () {
-//         function get_INCLUDE_URI() {
-//             return (typeof INCLUDE_URI !== "undefined") ?
-//                 INCLUDE_URI : "include/";
-//         }
-//         var start = "<script src='" + get_INCLUDE_URI(),
-//             end = "'><\/script>", extra = "";
-//
-//         WEB_SOCKET_SWF_LOCATION = get_INCLUDE_URI() +
-//                     "web-socket-js/WebSocketMain.swf?" + Math.random();
-//         if (Util.Engine.trident) {
-//             Util.Debug("Forcing uncached load of WebSocketMain.swf");
-//             WEB_SOCKET_SWF_LOCATION += "?" + Math.random();
-//         }
-//         extra += start + "web-socket-js/swfobject.js" + end;
-//         extra += start + "web-socket-js/FABridge.js" + end;
-//         extra += start + "web-socket-js/web_socket.js" + end;
-//         alert(extra)
-//         document.write(extra);
-//     }());
-// }
+if (window.WebSocket) {
+    Websock_native = true;
+} else if (window.MozWebSocket) {
+    Websock_native = true;
+    window.WebSocket = window.MozWebSocket;
+}
 
 
 Websock = function() {
@@ -258,9 +233,13 @@ function init() {
 function open(uri) {
     init();
 
-    websocket = new WebSocket(uri, 'base64');
-    // TODO: future native binary support
-    //websocket = new WebSocket(uri, ['binary', 'base64']);
+    if (test_mode) {
+        websocket = {};
+    } else {
+        websocket = new WebSocket(uri, 'base64');
+        // TODO: future native binary support
+        //websocket = new WebSocket(uri, ['binary', 'base64']);
+    }
 
     websocket.onmessage = recv_message;
     websocket.onopen = function() {
