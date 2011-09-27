@@ -225,7 +225,7 @@ Sec-WebSocket-Accept: %s\r
         payload_len = len(buf)
         if payload_len <= 125:
             header = struct.pack('>BB', b1, payload_len)
-        elif payload_len > 125 and payload_len <= 65536:
+        elif payload_len > 125 and payload_len < 65536:
             header = struct.pack('>BBH', b1, 126, payload_len)
         elif payload_len >= 65536:
             header = struct.pack('>BBQ', b1, 127, payload_len)
@@ -295,7 +295,7 @@ Sec-WebSocket-Accept: %s\r
         if has_mask:
             # unmask payload
             f['mask'] = buf[f['hlen']:f['hlen']+4]
-            b = c = ''
+            b = c = s2b('')
             if f['length'] >= 4:
                 mask = numpy.frombuffer(buf, dtype=numpy.dtype('<u4'),
                         offset=f['hlen'], count=1)
@@ -305,7 +305,7 @@ Sec-WebSocket-Accept: %s\r
                 b = numpy.bitwise_xor(data, mask).tostring()
 
             if f['length'] % 4:
-                print("Partial unmask")
+                #print("Partial unmask")
                 mask = numpy.frombuffer(buf, dtype=numpy.dtype('B'),
                         offset=f['hlen'], count=(f['length'] % 4))
                 data = numpy.frombuffer(buf, dtype=numpy.dtype('B'),
@@ -615,9 +615,10 @@ Sec-WebSocket-Accept: %s\r
                 raise self.EClose("Python >= 2.6 and numpy module is required for HyBi-07 or greater")
 
             # HyBi-07 report version 7
-            # HyBi-08 - HyBi-10 report version 8
-            if ver in ['7', '8']:
-                self.version = "hybi-0" + ver
+            # HyBi-08 - HyBi-12 report version 8
+            # HyBi-13 reports version 13
+            if ver in ['7', '8', '13']:
+                self.version = "hybi-%02d" % int(ver)
             else:
                 raise self.EClose('Unsupported protocol version %s' % ver)
 
@@ -634,7 +635,7 @@ Sec-WebSocket-Accept: %s\r
             # Generate the hash value for the accept header
             accept = b64encode(sha1(s2b(key + self.GUID)).digest())
 
-            response = self.server_handshake_hybi % accept
+            response = self.server_handshake_hybi % b2s(accept)
             if self.base64:
                 response += "Sec-WebSocket-Protocol: base64\r\n"
             else:

@@ -19,7 +19,7 @@ var that           = {},  // Public API methods
     init_vars, updateState, fail, handle_message,
     init_msg, normal_msg, framebufferUpdate, print_stats,
 
-    pixelFormat, clientEncodings, fbUpdateRequest,
+    pixelFormat, clientEncodings, fbUpdateRequest, fbUpdateRequests,
     keyEvent, pointerEvent, clientCutText,
 
     extract_data_uri, scan_tight_imgQ,
@@ -533,10 +533,10 @@ function genDES(password, challenge) {
 
 function flushClient() {
     if (mouse_arr.length > 0) {
-        //send(mouse_arr.concat(fbUpdateRequest(1)));
+        //send(mouse_arr.concat(fbUpdateRequests()));
         ws.send(mouse_arr);
         setTimeout(function() {
-                ws.send(fbUpdateRequest(1));
+                ws.send(fbUpdateRequests());
             }, 50);
 
         mouse_arr = [];
@@ -554,7 +554,7 @@ checkEvents = function() {
             now = new Date().getTime();
             if (now > last_req_time + conf.fbu_req_rate) {
                 last_req_time = now;
-                ws.send(fbUpdateRequest(1));
+                ws.send(fbUpdateRequests());
             }
         }
     }
@@ -564,7 +564,7 @@ checkEvents = function() {
 keyPress = function(keysym, down) {
     var arr;
     arr = keyEvent(keysym, down);
-    arr = arr.concat(fbUpdateRequest(1));
+    arr = arr.concat(fbUpdateRequests());
     ws.send(arr);
 };
 
@@ -780,6 +780,7 @@ init_msg = function() {
 
         display.set_true_color(conf.true_color);
         display.resize(fb_width, fb_height);
+        display.viewportChange(0, 0, fb_width, fb_height);
         keyboard.grab();
         mouse.grab();
 
@@ -793,7 +794,7 @@ init_msg = function() {
 
         response = pixelFormat();
         response = response.concat(clientEncodings());
-        response = response.concat(fbUpdateRequest(0));
+        response = response.concat(fbUpdateRequests());
         timing.fbu_rt_start = (new Date()).getTime();
         ws.send(response);
         
@@ -840,9 +841,9 @@ normal_msg = function() {
             //Util.Debug("red after: " + red);
             green = parseInt(ws.rQshift16() / 256, 10);
             blue = parseInt(ws.rQshift16() / 256, 10);
-            Util.Debug("*** colourMap: " + display.get_colourMap());
             display.set_colourMap([red, green, blue], first_colour + c);
         }
+        Util.Debug("colourMap: " + display.get_colourMap());
         Util.Info("Registered " + num_colours + " colourMap entries");
         //Util.Debug("colourMap: " + display.get_colourMap());
         break;
@@ -1310,9 +1311,10 @@ encHandlers.DesktopSize = function set_desktopsize() {
     fb_width = FBU.width;
     fb_height = FBU.height;
     display.resize(fb_width, fb_height);
+    display.viewportChange(0, 0, fb_width, fb_height);
     timing.fbu_rt_start = (new Date()).getTime();
     // Send a new non-incremental request
-    ws.send(fbUpdateRequest(0));
+    ws.send(fbUpdateRequests());
 
     FBU.bytes = 0;
     FBU.rects -= 1;
@@ -1414,10 +1416,10 @@ clientEncodings = function() {
 
 fbUpdateRequest = function(incremental, x, y, xw, yw) {
     //Util.Debug(">> fbUpdateRequest");
-    if (!x) { x = 0; }
-    if (!y) { y = 0; }
-    if (!xw) { xw = fb_width; }
-    if (!yw) { yw = fb_height; }
+    if (typeof(x) !== "undefined") { x = 0; }
+    if (typeof(y) !== "undefined") { y = 0; }
+    if (typeof(xw) !== "undefined") { xw = fb_width; }
+    if (typeof(yw) !== "undefined") { yw = fb_height; }
     var arr;
     arr = [3];  // msg-type
     arr.push8(incremental);
@@ -1428,6 +1430,26 @@ fbUpdateRequest = function(incremental, x, y, xw, yw) {
     //Util.Debug("<< fbUpdateRequest");
     return arr;
 };
+
+// Based on clean/dirty areas, generate requests to send
+fbUpdateRequests = function() {
+    var cleanDirty = display.getCleanDirtyReset(),
+        arr = [], i, cb, db;
+
+    cb = cleanDirty.cleanBox;
+    if (cb.w > 0 && cb.h > 0) {
+        // Request incremental for clean box
+        arr = arr.concat(fbUpdateRequest(1, cb.x, cb.y, cb.w, cb.h));
+    }
+    for (i = 0; i < cleanDirty.dirtyBoxes.length; i++) {
+        db = cleanDirty.dirtyBoxes[i];
+        // Force all (non-incremental for dirty box
+        arr = arr.concat(fbUpdateRequest(0, db.x, db.y, db.w, db.h));
+    }
+    return arr;
+};
+
+
 
 keyEvent = function(keysym, down) {
     //Util.Debug(">> keyEvent, keysym: " + keysym + ", down: " + down);
@@ -1519,7 +1541,7 @@ that.sendCtrlAltDel = function() {
     arr = arr.concat(keyEvent(0xFFFF, 0)); // Delete
     arr = arr.concat(keyEvent(0xFFE9, 0)); // Alt
     arr = arr.concat(keyEvent(0xFFE3, 0)); // Control
-    arr = arr.concat(fbUpdateRequest(1));
+    arr = arr.concat(fbUpdateRequests());
     ws.send(arr);
 };
 
@@ -1536,7 +1558,7 @@ that.sendKey = function(code, down) {
         arr = arr.concat(keyEvent(code, 1));
         arr = arr.concat(keyEvent(code, 0));
     }
-    arr = arr.concat(fbUpdateRequest(1));
+    arr = arr.concat(fbUpdateRequests());
     ws.send(arr);
 };
 
