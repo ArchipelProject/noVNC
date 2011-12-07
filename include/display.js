@@ -135,7 +135,7 @@ function constructor() {
             Util.Warn("Data URI scheme cursor not supported");
         }
         c.style.cursor = curSave;
-    } catch (exc2) { 
+    } catch (exc2) {
         Util.Error("Data URI scheme cursor test exception: " + exc2);
         conf.cursor_uri = false;
     }
@@ -145,61 +145,48 @@ function constructor() {
 }
 
 rescale = function(factor) {
-    var c, tp, x, y, 
+    var c, tp, x, y,
         properties = ['transform', 'WebkitTransform', 'MozTransform', 'oTransform', null],
         origin = ['transformOrigin', 'WebkitTransformOrigin', 'MozTransformOrigin', 'oTransformOrigin', null];
-        
+
     if (conf.scale === factor) {
         return;
     }
-    
     c = conf.target;
     conf.scale = factor;
     x = c.width - c.width * factor;
     y = c.height - c.height * factor;
-    
+
     //tp = properties.shift();
-    
+
     if (typeof(c.style.zoom) != "undefined") {
         c.style.zoom = conf.scale;
         return
     }
-        
     while (tp = properties.shift()) {
         if (typeof c.style[tp] != 'undefined') {
             break;
         }
     }
-    
+
     while (tpo = origin.shift()) {
         if (typeof c.style[tpo] != 'undefined') {
             break;
         }
     }
-    
+
     if (tp === null) {
         Util.Debug("No scaling support");
         return;
     }
 
-
     if (typeof(factor) === "undefined") {
         factor = conf.scale;
-    } else if (factor > 1.0) {
-        factor = 1.0;
-    } else if (factor < 0.1) {
-        factor = 0.1;
-    }
-
-    if (conf.scale === factor) {
-        //Util.Debug("Display already scaled to '" + factor + "'");
-        return;
     }
 
     conf.scale = factor;
-    x = c.width - c.width * factor;
-    y = c.height - c.height * factor;
-    c.style[tp] = "scale(" + conf.scale + ") translate(-" + x + "px, -" + y + "px)";
+    c.style[tpo] = "0 0";
+    c.style[tp] = "scale(" + conf.scale + ")";
 };
 
 setFillColor = function(color) {
@@ -502,8 +489,8 @@ that.subTile = function(x, y, w, h, color) {
                 data[p + 1] = green;
                 data[p + 2] = blue;
                 data[p + 3] = 255;
-            }   
-        } 
+            }
+        }
     } else {
         that.fillRect(tile_x + x, tile_y + y, w, h, color);
     }
@@ -594,7 +581,7 @@ return constructor();  // Return the public API interface
 function changeCursor(target, pixels, mask, hotx, hoty, w, h, cmap) {
     var cur = [], rgb, IHDRsz, RGBsz, ANDsz, XORsz, url, idx, alpha, x, y;
     //Util.Debug(">> changeCursor, x: " + hotx + ", y: " + hoty + ", w: " + w + ", h: " + h);
-    
+
     // Push multi-byte little-endian values
     cur.push16le = function (num) {
         this.push((num     ) & 0xFF,
