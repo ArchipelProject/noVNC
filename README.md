@@ -10,13 +10,13 @@ Notable commits, announcements and news are posted to
 @<a href="http://www.twitter.com/noVNC">noVNC</a>
 
 There are many companies/projects that have integrated noVNC into
-their products including: [Ganeti Web Manager](http://code.osuosl.org/projects/ganeti-webmgr), [Archipel](http://archipelproject.org), [openQRM](http://www.openqrm.com/), [OpenNode](http://www.opennodecloud.com/), [OpenStack](http://www.openstack.org), [Broadway (HTML5 GDK/GTK+ backend)](http://blogs.gnome.org/alexl/2011/03/15/gtk-html-backend-update/), [OpenNebula](http://opennebula.org/), [CloudSigma](http://www.cloudsigma.com/), [Zentyal (formerly eBox)](http://www.zentyal.org/), [SlapOS](http://www.slapos.org), [Intel MeshCentral](https://meshcentral.com), [Amahi](http://amahi.org), [Brightbox](http://brightbox.com/), and [LibVNCServer](http://libvncserver.sourceforge.net). See [this wiki page](https://github.com/kanaka/noVNC/wiki/ProjectsCompanies-using-noVNC) for more info and links.
+their products including: [Ganeti Web Manager](http://code.osuosl.org/projects/ganeti-webmgr), [Archipel](http://archipelproject.org), [openQRM](http://www.openqrm.com/), [OpenNode](http://www.opennodecloud.com/), [OpenStack](http://www.openstack.org), [Broadway (HTML5 GDK/GTK+ backend)](http://blogs.gnome.org/alexl/2011/03/15/gtk-html-backend-update/), [OpenNebula](http://opennebula.org/), [CloudSigma](http://www.cloudsigma.com/), [Zentyal (formerly eBox)](http://www.zentyal.org/), [SlapOS](http://www.slapos.org), [Intel MeshCentral](https://meshcentral.com), [Amahi](http://amahi.org), [Brightbox](http://brightbox.com/), [Foreman](http://theforeman.org) and [LibVNCServer](http://libvncserver.sourceforge.net). See [this wiki page](https://github.com/kanaka/noVNC/wiki/ProjectsCompanies-using-noVNC) for more info and links.
 
 
 ### Features
 
 * Supports all modern browsers including mobile (iOS, Android)
-* Supported VNC encodings: raw, copyrect, rre, hextile, tightPNG
+* Supported VNC encodings: raw, copyrect, rre, hextile, tight, tightPNG
 * WebSocket SSL/TLS encryption (i.e. "wss://") support
 * 24-bit true color and 8 bit colour mapped
 * Supports desktop resize notification/pseudo-encoding
@@ -25,8 +25,6 @@ their products including: [Ganeti Web Manager](http://code.osuosl.org/projects/g
 * Clipping or scolling modes for large remote screens
 * Easy site integration and theming (3 example themes included)
 * Licensed under the [LGPLv3](http://www.gnu.org/licenses/lgpl.html)
-
-
 
 ### Screenshots
 
@@ -78,11 +76,28 @@ a python proxy included ('websockify').
 
 ### Other Pages
 
-* [Advanced Usage](https://github.com/kanaka/noVNC/wiki/Advanced-usage). Generating an SSL
-  certificate, starting a VNC server, advanced websockify usage, etc.
+* [Encrypted Connections](https://github.com/kanaka/websockify/wiki/Encrypted-Connections). How to setup websockify so that you can use encrypted connections from noVNC.
+
+* [Advanced Usage](https://github.com/kanaka/noVNC/wiki/Advanced-usage). Starting a VNC server, advanced websockify usage, etc.
 
 * [Integrating noVNC](https://github.com/kanaka/noVNC/wiki/Integration) into existing projects.
 
 * [Troubleshooting noVNC](https://github.com/kanaka/noVNC/wiki/Troubleshooting) problems.
+
+
+### Authors/Contributors
+
+* noVNC : Joel Martin (github.com/kanaka)
+    * New UI and Icons : Chris Gordon
+    * Original Logo : Michael Sersen
+    * tight encoding : Michael Tinglof (Mercuri.ca)
+
+* Included libraries:
+    * web-socket-js : Hiroshi Ichikawa (github.com/gimite/web-socket-js)
+    * as3crypto : Henri Torgemane (code.google.com/p/as3crypto)
+    * base64 : Martijn Pieters (Digital Creations 2), Samuel Sieb (sieb.net)
+    * jsunzip : Erik Moller (github.com/operasoftware/jsunzip),
+    * tinflate : Joergen Ibsen (ibsensoftware.com)
+    * DES : Dave Zimmerman (Widget Workshop), Jef Poskanzer (ACME Labs)
 
 

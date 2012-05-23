@@ -18,9 +18,12 @@ var that           = {},  // Public API methods
     c_ctx          = null,
     c_forceCanvas  = false,
 
+    // Queued drawing actions for in-order rendering
+    renderQ        = [],
+
     // Predefine function variables (jslint)
-    imageDataGet, bgrxImageData, cmapImageData,
-    setFillColor, rescale,
+    imageDataGet, rgbImageData, bgrxImageData, cmapImageData,
+    setFillColor, rescale, scan_renderQ,
 
     // The full frame buffer (logical canvas) size
     fb_width        = 0,
@@ -419,6 +422,8 @@ that.clear = function() {
         c_ctx.clearRect(0, 0, viewport.w, viewport.h);
     }
 
+    renderQ = [];
+
     // No benefit over default ("source-over") in Chrome and firefox
     //c_ctx.globalCompositeOperation = "copy";
 };
@@ -504,6 +509,26 @@ that.finishTile = function() {
     // else: No-op, if not prefer_js then already done by setSubTile
 };
 
+rgbImageData = function(x, y, width, height, arr, offset) {
+    var img, i, j, data, v = viewport;
+    /*
+    if ((x - v.x >= v.w) || (y - v.y >= v.h) ||
+        (x - v.x + width < 0) || (y - v.y + height < 0)) {
+        // Skipping because outside of viewport
+        return;
+    }
+    */
+    img = c_ctx.createImageData(width, height);
+    data = img.data;
+    for (i=0, j=offset; i < (width * height * 4); i=i+4, j=j+3) {
+        data[i    ] = arr[j    ];
+        data[i + 1] = arr[j + 1];
+        data[i + 2] = arr[j + 2];
+        data[i + 3] = 255; // Set Alpha
+    }
+    c_ctx.putImageData(img, x - v.x, y - v.y);
+};
+
 bgrxImageData = function(x, y, width, height, arr, offset) {
     var img, i, j, data, v = viewport;
     /*
@@ -547,6 +572,15 @@ that.blitImage = function(x, y, width, height, arr, offset) {
     }
 };
 
+that.blitRgbImage = function(x, y, width, height, arr, offset) {
+    if (conf.true_color) {
+        rgbImageData(x, y, width, height, arr, offset);
+    } else {
+        // prolly wrong...
+        cmapImageData(x, y, width, height, arr, offset);
+    }
+};
+
 that.blitStringImage = function(str, x, y) {
     var img = new Image();
     img.onload = function () {
@@ -554,6 +588,58 @@ that.blitStringImage = function(str, x, y) {
     };
     img.src = str;
 };
+
+// Wrap ctx.drawImage but relative to viewport
+that.drawImage = function(img, x, y) {
+    c_ctx.drawImage(img, x - viewport.x, y - viewport.y);
+};
+
+that.renderQ_push = function(action) {
+    renderQ.push(action);
+    if (renderQ.length === 1) {
+        // If this can be rendered immediately it will be, otherwise
+        // the scanner will start polling the queue (every
+        // requestAnimationFrame interval)
+        scan_renderQ();
+    }
+};
+
+scan_renderQ = function() {
+    var a, ready = true;
+    while (ready && renderQ.length > 0) {
+        a = renderQ[0];
+        switch (a.type) {
+            case 'copy':
+                that.copyImage(a.old_x, a.old_y, a.x, a.y, a.width, a.height);
+                break;
+            case 'fill':
+                that.fillRect(a.x, a.y, a.width, a.height, a.color);
+                break;
+            case 'blit':
+                that.blitImage(a.x, a.y, a.width, a.height, a.data, 0);
+                break;
+            case 'blitRgb':
+                that.blitRgbImage(a.x, a.y, a.width, a.height, a.data, 0);
+                break;
+            case 'img':    
+                if (a.img.complete) {
+                    that.drawImage(a.img, a.x, a.y);
+                } else {
+                    // We need to wait for this image to 'load'
+                    // to keep things in-order
+                    ready = false;
+                }
+                break;
+        }
+        if (ready) {
+            a = renderQ.shift();
+        }
+    }
+    if (renderQ.length > 0) {
+        requestAnimFrame(scan_renderQ);
+    }
+};
+
 
 that.changeCursor = function(pixels, mask, hotx, hoty, w, h) {
     if (conf.cursor_uri === false) {

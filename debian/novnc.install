@@ -9,6 +9,7 @@ utils/websockify   /usr/share/novnc/utils
 utils/wsproxy.py  /usr/share/novnc/utils
 utils/rebind.c  /usr/share/novnc/utils
 utils/rebind.so  /usr/share/novnc/utils
+images  /usr/share/novnc
 images/favicon.ico  /usr/share/novnc
 include/base64.js   /usr/share/novnc/include
 include/des.js   /usr/share/novnc/include
@@ -25,4 +26,5 @@ include/util.js   /usr/share/novnc/include
 include/vnc.js   /usr/share/novnc/include
 include/websock.js   /usr/share/novnc/include
 include/webutil.js   /usr/share/novnc/include
+include/jsunzip.js   /usr/share/novnc/include
 include/web-socket-js/*   /usr/share/novnc/include/web-socket-js

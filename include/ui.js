@@ -14,7 +14,7 @@ var UI = {
 
 rfb_state : 'loaded',
 settingsOpen : false,
-connSettingsOpen : true,
+connSettingsOpen : false,
 clipboardOpen: false,
 keyboardVisible: false,
 
@@ -45,16 +45,16 @@ load: function() {
     WebUtil.selectStylesheet(UI.getSetting('stylesheet'));
 
     /* Populate the controls if defaults are provided in the URL */
-    UI.initSetting('host', '');
-    UI.initSetting('port', '');
+    UI.initSetting('host', window.location.hostname);
+    UI.initSetting('port', window.location.port);
     UI.initSetting('password', '');
-    UI.initSetting('encrypt', false);
+    UI.initSetting('encrypt', (window.location.protocol === "https:"));
     UI.initSetting('true_color', true);
     UI.initSetting('cursor', false);
     UI.initSetting('shared', true);
     UI.initSetting('view_only', false);
     UI.initSetting('connectTimeout', 2);
-    UI.initSetting('path', '');
+    UI.initSetting('path', 'websockify');
 
     UI.rfb = RFB({'target': $D('noVNC_canvas'),
                   'onUpdateState': UI.updateState,
@@ -102,6 +102,14 @@ load: function() {
         }
     } );
 
+    // Show description by default when hosted at for kanaka.github.com
+    if (location.host === "kanaka.github.com") {
+        // Open the description dialog
+        $D('noVNC_description').style.display = "block";
+    } else {
+        // Open the connect panel on first load
+        UI.toggleConnectPanel();
+    }
 },
 
 // Read form control compatible setting from cookie
@@ -189,6 +197,8 @@ forceSetting: function(name, val) {
 
 // Show the clipboard panel
 toggleClipboardPanel: function() {
+    // Close the description panel
+    $D('noVNC_description').style.display = "none";
     //Close settings if open
     if (UI.settingsOpen === true) {
         UI.settingsApply();
@@ -212,6 +222,8 @@ toggleClipboardPanel: function() {
 
 // Show the connection settings panel/menu
 toggleConnectPanel: function() {
+    // Close the description panel
+    $D('noVNC_description').style.display = "none";
     //Close connection settings if open
     if (UI.settingsOpen === true) {
         UI.settingsApply();
@@ -239,6 +251,8 @@ toggleConnectPanel: function() {
 //   On open, settings are refreshed from saved cookies.
 //   On close, settings are applied
 toggleSettingsPanel: function() {
+    // Close the description panel
+    $D('noVNC_description').style.display = "none";
     if (UI.settingsOpen) {
         UI.settingsApply();
         UI.closeSettingsMenu();
@@ -265,6 +279,8 @@ toggleSettingsPanel: function() {
 
 // Open menu
 openSettingsMenu: function() {
+    // Close the description panel
+    $D('noVNC_description').style.display = "none";
     if (UI.clipboardOpen === true) {
         UI.toggleClipboardPanel();
     }
@@ -415,10 +431,12 @@ updateVisualState: function() {
     if (connected) {
         UI.setViewClip();
         UI.setMouseButton(1);
+        $D('clipboardButton').style.display = "inline";
         $D('showKeyboard').style.display = "inline";
         $D('sendCtrlAltDelButton').style.display = "inline";
     } else {
         UI.setMouseButton();
+        $D('clipboardButton').style.display = "none";
         $D('showKeyboard').style.display = "none";
         $D('sendCtrlAltDelButton').style.display = "none";
     }
