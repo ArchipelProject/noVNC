@@ -1,6 +1,6 @@
 /*
  * Websock: high-performance binary WebSockets
- * Copyright (C) 2011 Joel Martin
+ * Copyright (C) 2012 Joel Martin
  * Licensed under LGPL-3 (see LICENSE.txt)
  *
  * Websock is similar to the standard WebSocket object but Websock
@@ -18,11 +18,39 @@
 
 // Load Flash WebSocket emulator if needed
 
+// To force WebSocket emulator even when native WebSocket available
+//window.WEB_SOCKET_FORCE_FLASH = true;
+// To enable WebSocket emulator debug:
+//window.WEB_SOCKET_DEBUG=1;
+
 if (window.WebSocket && !window.WEB_SOCKET_FORCE_FLASH) {
     Websock_native = true;
 } else if (window.MozWebSocket && !window.WEB_SOCKET_FORCE_FLASH) {
     Websock_native = true;
     window.WebSocket = window.MozWebSocket;
+} else {
+    /* no builtin WebSocket so load web_socket.js */
+
+    Websock_native = false;
+    (function () {
+        function get_INCLUDE_URI() {
+            return (typeof INCLUDE_URI !== "undefined") ?
+                INCLUDE_URI : "include/";
+        }
+
+        var start = "<script src='" + get_INCLUDE_URI(),
+            end = "'><\/script>", extra = "";
+
+        window.WEB_SOCKET_SWF_LOCATION = get_INCLUDE_URI() +
+                    "web-socket-js/WebSocketMain.swf";
+        if (Util.Engine.trident) {
+            Util.Debug("Forcing uncached load of WebSocketMain.swf");
+            window.WEB_SOCKET_SWF_LOCATION += "?" + Math.random();
+        }
+        extra += start + "web-socket-js/swfobject.js" + end;
+        extra += start + "web-socket-js/web_socket.js" + end;
+        document.write(extra);
+    }());
 }
 
 
@@ -251,6 +279,8 @@ function open(uri) {
         Util.Debug(">> WebSock.onopen");
         if (websocket.protocol) {
             Util.Info("Server chose sub-protocol: " + websocket.protocol);
+        } else {
+            Util.Error("Server select no sub-protocol!: " + websocket.protocol);
         }
         eventHandlers.open();
         Util.Debug("<< WebSock.onopen");
