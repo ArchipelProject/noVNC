@@ -23,7 +23,6 @@ include/playback.js   /usr/share/novnc/include
 include/rfb.js   /usr/share/novnc/include
 include/ui.js   /usr/share/novnc/include
 include/util.js   /usr/share/novnc/include
-include/vnc.js   /usr/share/novnc/include
 include/websock.js   /usr/share/novnc/include
 include/webutil.js   /usr/share/novnc/include
 include/jsunzip.js   /usr/share/novnc/include

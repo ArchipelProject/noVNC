@@ -1,7 +1,7 @@
 /*
  * noVNC: HTML5 VNC client
  * Copyright (C) 2012 Joel Martin
- * Licensed under LGPL-3 (see LICENSE.txt)
+ * Licensed under MPL 2.0 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
  *
@@ -162,6 +162,8 @@ Util.conf_defaults(conf, that, defaults, [
         'onFBUReceive(rfb, fbu): RFB FBU received but not yet processed '],
     ['onFBUComplete',      'rw', 'func', function() { },
         'onFBUComplete(rfb, fbu): RFB FBU received and processed '],
+    ['onFBResize',         'rw', 'func', function() { },
+        'onFBResize(rfb, width, height): frame buffer resized'],
 
     // These callback names are deprecated
     ['updateState',        'rw', 'func', function() { },
@@ -298,7 +300,8 @@ function connect() {
         uri += rfb_host + ":" + rfb_port + "/" + rfb_path;
     }
     Util.Info("connecting to " + uri);
-    ws.open(uri);
+    // TODO: make protocols a configurable
+    ws.open(uri, ['binary', 'base64']);
 
     Util.Debug("<< RFB.connect");
 }
@@ -877,6 +880,7 @@ init_msg = function() {
         }
 
         display.set_true_color(conf.true_color);
+        conf.onFBResize(that, fb_width, fb_height);
         display.resize(fb_width, fb_height);
         keyboard.grab();
         mouse.grab();
@@ -893,6 +897,7 @@ init_msg = function() {
         response = response.concat(clientEncodings());
         response = response.concat(fbUpdateRequests());
         timing.fbu_rt_start = (new Date()).getTime();
+        timing.pixels = 0;
         ws.send(response);
         
         /* Start pushing/polling */
@@ -1043,7 +1048,7 @@ framebufferUpdate = function() {
             timing.pixels += FBU.width * FBU.height;
         }
 
-        if (FBU.rects === 0 || (timing.pixels >= (fb_width * fb_height))) {
+        if (timing.pixels >= (fb_width * fb_height)) {
             if (((FBU.width === fb_width) &&
                         (FBU.height === fb_height)) ||
                     (timing.fbu_rt_start > 0)) {
@@ -1355,6 +1360,45 @@ function display_tight(isTightPNG) {
         return uncompressed.data;
     }
 
+    var indexedToRGB = function (data, numColors, palette, width, height) {
+        // Convert indexed (palette based) image data to RGB
+        // TODO: reduce number of calculations inside loop
+        var dest = [];
+        var x, y, b, w, w1, dp, sp;
+        if (numColors === 2) {
+            w = Math.floor((width + 7) / 8);
+            w1 = Math.floor(width / 8);
+            for (y = 0; y < height; y++) {
+                for (x = 0; x < w1; x++) {
+                    for (b = 7; b >= 0; b--) {
+                        dp = (y*width + x*8 + 7-b) * 3;
+                        sp = (data[y*w + x] >> b & 1) * 3;
+                        dest[dp  ] = palette[sp  ];
+                        dest[dp+1] = palette[sp+1];
+                        dest[dp+2] = palette[sp+2];
+                    }
+                }
+                for (b = 7; b >= 8 - width % 8; b--) {
+                    dp = (y*width + x*8 + 7-b) * 3;
+                    sp = (data[y*w + x] >> b & 1) * 3;
+                    dest[dp  ] = palette[sp  ];
+                    dest[dp+1] = palette[sp+1];
+                    dest[dp+2] = palette[sp+2];
+                }
+            }
+        } else {
+            for (y = 0; y < height; y++) {
+                for (x = 0; x < width; x++) {
+                    dp = (y*width + x) * 3;
+                    sp = data[y*width + x] * 3;
+                    dest[dp  ] = palette[sp  ];
+                    dest[dp+1] = palette[sp+1];
+                    dest[dp+2] = palette[sp+2];
+                }
+            }
+        }
+        return dest;
+    };
     var handlePalette = function() {
         var numColors = rQ[rQi + 2] + 1;
         var paletteSize = numColors * fb_depth; 
@@ -1386,45 +1430,12 @@ function display_tight(isTightPNG) {
         }
 
         // Convert indexed (palette based) image data to RGB
-        // TODO: reduce number of calculations inside loop
-        var dest = [];
-        var x, y, b, w, w1, dp, sp;
-        if (numColors === 2) {
-            w = Math.floor((FBU.width + 7) / 8);
-            w1 = Math.floor(FBU.width / 8);
-            for (y = 0; y < FBU.height; y++) {
-                for (x = 0; x < w1; x++) {
-                    for (b = 7; b >= 0; b--) {
-                        dp = (y*FBU.width + x*8 + 7-b) * 3;
-                        sp = (data[y*w + x] >> b & 1) * 3;
-                        dest[dp  ] = palette[sp  ];
-                        dest[dp+1] = palette[sp+1];
-                        dest[dp+2] = palette[sp+2];
-                    }
-                }
-                for (b = 7; b >= 8 - FBU.width % 8; b--) {
-                    dp = (y*FBU.width + x*8 + 7-b) * 3;
-                    sp = (data[y*w + x] >> b & 1) * 3;
-                    dest[dp  ] = palette[sp  ];
-                    dest[dp+1] = palette[sp+1];
-                    dest[dp+2] = palette[sp+2];
-                }
-            }
-        } else {
-            for (y = 0; y < FBU.height; y++) {
-                for (x = 0; x < FBU.width; x++) {
-                    dp = (y*FBU.width + x) * 3;
-                    sp = data[y*FBU.width + x] * 3;
-                    dest[dp  ] = palette[sp  ];
-                    dest[dp+1] = palette[sp+1];
-                    dest[dp+2] = palette[sp+2];
-                }
-            }
-        }
+        var rgb = indexedToRGB(data, numColors, palette, FBU.width, FBU.height);
 
+        // Add it to the render queue
         display.renderQ_push({
                 'type': 'blitRgb',
-                'data': dest,
+                'data': rgb,
                 'x': FBU.x,
                 'y': FBU.y,
                 'width': FBU.width,
@@ -1575,6 +1586,7 @@ encHandlers.DesktopSize = function set_desktopsize() {
     Util.Debug(">> set_desktopsize");
     fb_width = FBU.width;
     fb_height = FBU.height;
+    conf.onFBResize(that, fb_width, fb_height);
     display.resize(fb_width, fb_height);
     timing.fbu_rt_start = (new Date()).getTime();
     // Send a new non-incremental request
@@ -1834,15 +1846,16 @@ that.clipboardPasteFrom = function(text) {
 };
 
 // Override internal functions for testing
-that.testMode = function(override_send) {
+that.testMode = function(override_send, data_mode) {
     test_mode = true;
-    that.recv_message = ws.testMode(override_send);
+    that.recv_message = ws.testMode(override_send, data_mode);
 
     checkEvents = function () { /* Stub Out */ };
     that.connect = function(host, port, password) {
             rfb_host = host;
             rfb_port = port;
             rfb_password = password;
+            init_vars();
             updateState('ProtocolVersion', "Starting VNC handshake");
         };
 };

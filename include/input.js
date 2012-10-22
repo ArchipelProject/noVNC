@@ -1,7 +1,7 @@
 /*
  * noVNC: HTML5 VNC client
- * Copyright (C) 2011 Joel Martin
- * Licensed under LGPL-2 or any later version (see LICENSE.txt)
+ * Copyright (C) 2012 Joel Martin
+ * Licensed under MPL 2.0 or any later version (see LICENSE.txt)
  */
 
 /*jslint browser: true, white: false, bitwise: false */
@@ -81,6 +81,10 @@ function getKeysymSpecial(evt) {
             case 121       : keysym = 0xFFC7; break; // F10
             case 122       : keysym = 0xFFC8; break; // F11
             case 123       : keysym = 0xFFC9; break; // F12
+
+            case 225       : keysym = 0xFE03; break; // AltGr
+            case 91       : keysym = 0xFFEC; break; // Super_R (Win Key)
+            case 93       : keysym = 0xFF67; break; // Menu (Win Menu)
 
             default        :                  break;
         }

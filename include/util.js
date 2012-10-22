@@ -1,7 +1,7 @@
 /*
  * noVNC: HTML5 VNC client
  * Copyright (C) 2012 Joel Martin
- * Licensed under LGPL-3 (see LICENSE.txt)
+ * Licensed under MPL 2.0 (see LICENSE.txt)
  *
  * See README.md for usage and integration instructions.
  */
@@ -205,6 +205,60 @@ Util.conf_defaults = function(cfg, api, defaults, arr) {
 /*
  * Cross-browser routines
  */
+
+
+// Dynamically load scripts without using document.write()
+// Reference: http://unixpapa.com/js/dyna.html
+//
+// Handles the case where load_scripts is invoked from a script that
+// itself is loaded via load_scripts. Once all scripts are loaded the
+// window.onscriptsloaded handler is called (if set).
+Util.get_include_uri = function() {
+    return (typeof INCLUDE_URI !== "undefined") ? INCLUDE_URI : "include/";
+}
+Util._pending_scripts = [];
+Util.load_script = function(file, onload) {
+    var head = document.getElementsByTagName('head')[0];
+    var script = document.createElement('script');
+    script.type = 'text/javascript';
+    script.src = Util.get_include_uri() + file;
+    // In order script execution for webkit and firefox    
+    // https://developer.mozilla.org/en-US/docs/HTML/Element/script
+    script.async = false;
+    if (Util.Engine.trident) {
+        // In order script execution for IE 9
+        // http://ui.cognifide.com/slides/async-js/template/#26
+        script.defer = true;
+    }
+    //console.log("loading script: " + Util.get_include_uri() +  files[f]);
+    head.appendChild(script);
+    if (typeof onload !== "undefined") {
+        script.onload = script.onreadystatechange = onload;
+    }
+    return script;
+};
+Util.load_scripts = function(files) {
+    var head = document.getElementsByTagName('head')[0],
+        ps = Util._pending_scripts;
+    for (var f=0; f<files.length; f++) {
+        var script = Util.load_script(files[f], function (e) {
+            if (!this.readyState || 
+                this.readyState == 'complete' ||
+                this.readyState == 'loaded') {
+                this.onload = this.onreadystatechange = null;
+                if (ps.indexOf(this) >= 0) {
+                    //console.log("loaded script: " + this.src);
+                    ps.splice(ps.indexOf(this), 1);
+                }
+                // Call window.onscriptsload after last script loads
+                if (ps.length === 0 && window.onscriptsload) {
+                    window.onscriptsload();
+                }
+            }
+        });
+        ps.push(script);
+    }
+}
 
 // Get DOM element position on page
 Util.getPosition = function (obj) {
