@@ -22,13 +22,15 @@
 //window.WEB_SOCKET_FORCE_FLASH = true;
 // To enable WebSocket emulator debug:
 //window.WEB_SOCKET_DEBUG=1;
+// To forbid Flash
+window.WEB_SOCKET_FLASH_FORBIDDEN = 1
 
 if (window.WebSocket && !window.WEB_SOCKET_FORCE_FLASH) {
     Websock_native = true;
 } else if (window.MozWebSocket && !window.WEB_SOCKET_FORCE_FLASH) {
     Websock_native = true;
     window.WebSocket = window.MozWebSocket;
-} else {
+} else if (!window.WEB_SOCKET_FLASH_FORBIDDEN) {
     /* no builtin WebSocket so load web_socket.js */
 
     Websock_native = false;
@@ -252,7 +254,7 @@ function recv_message(e) {
 
 
 // Set event handlers
-function on(evt, handler) { 
+function on(evt, handler) {
     eventHandlers[evt] = handler;
 }
 
