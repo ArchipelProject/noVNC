@@ -171,7 +171,10 @@ function decode_message(data) {
     //Util.Debug(">> decode_message: " + data);
     if (mode === 'binary') {
         // push arraybuffer values onto the end
-        rQ.push.apply(rQ, (new Uint8Array(data)));
+        var u8 = new Uint8Array(data);
+        for (var i = 0; i < u8.length; i++) {
+            rQ.push(u8[i]);
+        }
     } else {
         // base64 decode and concat to the end
         rQ = rQ.concat(Base64.decode(data, 0));
@@ -258,7 +261,7 @@ function on(evt, handler) {
     eventHandlers[evt] = handler;
 }
 
-function init(protocols) {
+function init(protocols, ws_schema) {
     rQ         = [];
     rQi        = 0;
     sQ         = [];
@@ -273,12 +276,13 @@ function init(protocols) {
         ('set' in Uint8Array.prototype)) {
         bt = true;
     }
-
-    // Check for full binary type support in WebSockets
-    // TODO: this sucks, the property should exist on the prototype
-    // but it does not.
+    // Check for full binary type support in WebSocket
+    // Inspired by:
+    // https://github.com/Modernizr/Modernizr/issues/370
+    // https://github.com/Modernizr/Modernizr/blob/master/feature-detects/websockets/binary.js
     try {
-        if (bt && ('binaryType' in (new WebSocket("ws://localhost:17523")))) {
+        if (bt && ('binaryType' in WebSocket.prototype ||
+                   !!(new WebSocket(ws_schema + '://.').binaryType))) {
             Util.Info("Detected binaryType support in WebSockets");
             wsbt = true;
         }
@@ -321,12 +325,16 @@ function init(protocols) {
 }
 
 function open(uri, protocols) {
-    protocols = init(protocols);
+    var ws_schema = uri.match(/^([a-z]+):\/\//)[1];
+    protocols = init(protocols, ws_schema);
 
     if (test_mode) {
         websocket = {};
     } else {
         websocket = new WebSocket(uri, protocols);
+        if (protocols.indexOf('binary') >= 0) {
+            websocket.binaryType = 'arraybuffer';
+        }
     }
 
     websocket.onmessage = recv_message;
@@ -338,9 +346,6 @@ function open(uri, protocols) {
         } else {
             mode = 'base64';
             Util.Error("Server select no sub-protocol!: " + websocket.protocol);
-        }
-        if (mode === 'binary') {
-            websocket.binaryType = 'arraybuffer';
         }
         eventHandlers.open();
         Util.Debug("<< WebSock.onopen");
