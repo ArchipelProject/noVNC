@@ -1,4 +1,4 @@
-var XK_VoidSymbol =                0xffffff, /* Void symbol */
+XK_VoidSymbol =                0xffffff, /* Void symbol */
 
 XK_BackSpace =                   0xff08, /* Back space, back char */
 XK_Tab =                         0xff09,
